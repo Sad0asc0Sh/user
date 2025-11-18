@@ -2,53 +2,55 @@
 
 import { MainCategory } from '@/lib/mock-category-data';
 import { cn } from '@/lib/utils';
-import { Smartphone, Shirt, Heart, Home, Book, HelpCircle } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
-
-// Map category slugs to Lucide icons
-const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
-  digital: Smartphone,
-  fashion: Shirt,
-  'health-beauty': Heart,
-  'home-kitchen': Home,
-  'books-art': Book,
-};
+import { HelpCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface MainCategoryListProps {
   categories: MainCategory[];
   selectedCategory: MainCategory;
-  onSelect: (category: MainCategory) => void;
 }
 
 export default function MainCategoryList({
   categories,
   selectedCategory,
-  onSelect,
 }: MainCategoryListProps) {
   return (
     <nav className="p-2" aria-label="Main categories">
-      <div className="grid grid-cols-1 gap-3">
+      <ul className="space-y-2">
         {categories.map((category) => {
           const isSelected = category.id === selectedCategory.id;
-          const IconComponent = iconMap[category.slug] || HelpCircle;
+          const IconComponent = category.icon || HelpCircle;
           return (
-            <button
-              key={category.id}
-              onClick={() => onSelect(category)}
-              className={cn(
-                'w-full aspect-square rounded-xl flex flex-col items-center justify-center p-2 transition-colors duration-200',
-                isSelected
-                  ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary'
-                  : 'bg-white hover:bg-gray-100 text-gray-700'
+            <li key={category.id} className="relative">
+              <Link
+                href={`/categories?category=${category.slug}`}
+                scroll={false}
+                className={cn(
+                  'w-full h-20 p-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors duration-200',
+                  isSelected
+                    ? 'text-brand-primary font-bold'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                )}
+                aria-current={isSelected ? 'page' : undefined}
+              >
+                <IconComponent className="w-6 h-6" />
+                <span className="text-[8px] font-bold text-center whitespace-normal">
+                  {category.name}
+                </span>
+              </Link>
+              {isSelected && (
+                <motion.div
+                  layoutId="active-category-indicator"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-brand-primary rounded-l-full"
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                />
               )}
-              aria-selected={isSelected}
-            >
-              <IconComponent className="w-14 h-14 mb-2" />
-              <span className="text-sm font-medium text-center">{category.name}</span>
-            </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

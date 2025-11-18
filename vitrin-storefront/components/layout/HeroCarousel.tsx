@@ -16,27 +16,27 @@ import { Button } from "@/components/ui/button";
 const banners = [
   {
     src: "https://placehold.co/600x600/ffffff/7c3aed?text=Product+1",
-    alt: "Banner 1",
-    badge: "جدیدترین",
-    title: "کلکسیون جدیدترین مدل‌های ساعت هوشمند",
+    alt: "بنر ۱",
+    badge: "پرفروش‌ترین‌های امروز",
+    title: "برترین محصولات دیجیتال با تخفیف‌های ویژه",
     subtitle:
-      "از برندهای معتبر دنیا با بهترین قیمت‌ها و گارانتی اصلی.",
+      "گوشی، لپ‌تاپ و گجت‌های هوشمند را با قیمت مناسب و ارسال سریع از ویترین تهیه کنید.",
   },
   {
     src: "https://placehold.co/600x600/ffffff/2563eb?text=Product+2",
-    alt: "Banner 2",
-    badge: "تخفیف ویژه",
-    title: "لوازم جانبی موبایل و تبلت",
+    alt: "بنر ۲",
+    badge: "حراج شگفت‌انگیز",
+    title: "جدیدترین گوشی‌ها و لپ‌تاپ‌ها",
     subtitle:
-      "هرآنچه برای گوشی خود نیاز دارید، از کاور تا پاوربانک.",
+      "هر روز پیشنهادهای تازه با ضمانت اصالت کالا و گارانتی معتبر برای خریدی مطمئن.",
   },
   {
     src: "https://placehold.co/600x600/ffffff/0f766e?text=Product+3",
-    alt: "Banner 3",
-    badge: "پیشنهاد شگفت‌انگیز",
-    title: "تجهیزات گیمینگ، هیجان بی‌وقفه",
+    alt: "بنر ۳",
+    badge: "ارسال سریع و رایگان",
+    title: "تجربه خرید آنلاین راحت و امن",
     subtitle:
-      "جدیدترین گجت‌های روز دنیا برای تجربه‌ای متفاوت.",
+      "از انتخاب تا تحویل درب منزل، همراه شما هستیم تا خریدی لذت‌بخش داشته باشید.",
   },
 ];
 
@@ -78,14 +78,14 @@ export function HeroCarousel() {
                         size="lg"
                         className="rounded-full px-8 py-3 text-sm font-semibold"
                       >
-                        خرید
+                        شروع خرید
                       </Button>
                       <Button
                         variant="outline"
                         size="lg"
                         className="rounded-full border-slate-200 bg-white/70 px-6 py-3 text-sm text-slate-700 shadow-sm backdrop-blur"
                       >
-                        مشاهده بیشتر
+                        مشاهده همه دسته‌بندی‌ها
                       </Button>
                     </div>
                   </div>
@@ -117,3 +117,4 @@ export function HeroCarousel() {
     </section>
   );
 }
+

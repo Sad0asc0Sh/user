@@ -1,5 +1,6 @@
 import { HeroCarousel } from "@/components/layout/HeroCarousel";
 import { ProductCarousel } from "@/components/products/ProductCarousel";
+import { FlashSaleSection } from "@/components/sales/FlashSaleSection";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Truck, LifeBuoy } from "lucide-react";
 import Image from "next/image";
@@ -17,7 +18,7 @@ const categories = [
     image: "https://placehold.co/300x300/3B82F6/FFF?text=Laptop",
   },
   {
-    name: "ساعت و گجت هوشمند",
+    name: "ساعت و گجت پوشیدنی",
     href: "#",
     image: "https://placehold.co/300x300/F97316/FFF?text=Watch",
   },
@@ -41,21 +42,21 @@ const categories = [
 const valuePropositions = [
   {
     icon: <Truck className="h-10 w-10 text-primary" strokeWidth={1.5} />,
-    title: "ارسال سریع و رایگان",
+    title: "ارسال سریع و مطمئن",
     description:
-      "سفارش‌های شما در کوتاه‌ترین زمان ممکن و با بسته‌بندی امن به سراسر کشور ارسال می‌شود.",
+      "سفارش‌های شما در کوتاه‌ترین زمان ممکن و با بسته‌بندی ایمن به تمام نقاط کشور ارسال می‌شود.",
   },
   {
     icon: <ShieldCheck className="h-10 w-10 text-primary" strokeWidth={1.5} />,
-    title: "ضمانت اصالت و سلامت کالا",
+    title: "ضمانت اصالت کالا",
     description:
-      "تمامی محصولات با تضمین اصالت و مهلت تست، همراه با پشتیبانی تیم ویترین‌شاپ ارائه می‌شوند.",
+      "تمامی محصولات با ضمانت اصالت و گارانتی معتبر عرضه می‌شوند تا با خیال راحت خرید کنید.",
   },
   {
     icon: <LifeBuoy className="h-10 w-10 text-primary" strokeWidth={1.5} />,
     title: "پشتیبانی ۲۴ ساعته",
     description:
-      "در هر ساعت از شبانه‌روز می‌توانید با پشتیبانی تماس بگیرید و راهنمایی دریافت کنید.",
+      "تیم پشتیبانی ما در تمام روزهای هفته کنار شماست تا به سوال‌ها و مشکلات‌تان پاسخ دهد.",
   },
 ];
 
@@ -64,6 +65,9 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col bg-slate-50">
       {/* Hero Section */}
       <HeroCarousel />
+
+      {/* Flash Sale Section */}
+      <FlashSaleSection />
 
       {/* Category Highlights Section */}
       <section className="w-full bg-slate-50 py-10 md:py-16">
@@ -111,31 +115,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <ProductCarousel title="محصولات ویژه ویترین‌شاپ" />
+      {/* Best Sellers */}
+      <ProductCarousel
+        title="پرفروش‌ترین محصولات"
+        viewAllLink="/products/best-sellers"
+      />
 
-      {/* Flash Sale Section */}
-      <section className="w-full bg-gradient-to-r from-rose-50 via-pink-50 to-indigo-50 py-10 md:py-14">
-        <div className="container mx-auto flex flex-col items-center justify-center px-4 text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            فروش ویژه امروز
-          </h2>
-          <p className="mt-3 max-w-2xl text-lg text-slate-700">
-            برخی از محصولات منتخب ویترین‌شاپ را با قیمت‌های شگفت‌انگیز و برای
-            مدت محدود تهیه کنید.
-          </p>
-          {/* Placeholder for countdown timer */}
-          <div className="mt-5 rounded-full bg-white/70 px-6 py-3 text-2xl font-bold text-rose-500 shadow-sm">
-            زمان باقی‌مانده تا پایان فروش: ۱۲:۳۲:۱۰
-          </div>
-          <Button className="mt-7 rounded-full px-10" size="lg">
-            مشاهده همه پیشنهادها
-          </Button>
-        </div>
-      </section>
-
-      {/* Another Product Carousel */}
-      <ProductCarousel title="جدیدترین محصولات فروشگاه" />
+      {/* Newest */}
+      <ProductCarousel
+        title="جدیدترین محصولات"
+        viewAllLink="/products/newest"
+      />
 
       {/* Value Propositions Section */}
       <section className="w-full border-t border-slate-100 bg-slate-50 py-10 md:py-16">

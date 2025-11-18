@@ -5,8 +5,8 @@ import {
   Headphones,
   Camera,
   Gamepad2,
-  Icon as LucideIcon,
   HelpCircle, // Default icon
+  type LucideIcon,
 } from 'lucide-react';
 
 const iconMap: { [key: string]: LucideIcon } = {

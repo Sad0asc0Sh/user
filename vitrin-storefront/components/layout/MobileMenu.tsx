@@ -39,7 +39,7 @@ export function MobileMenu({ isOpen, setIsOpen }: MobileMenuProps) {
             پرفروش‌ترین محصولات
           </a>
           <a href="/installments" className="text-lg font-medium">
-            خرید اقساطی و ویژه
+            ارتباط با ما
           </a>
         </div>
       </SheetContent>

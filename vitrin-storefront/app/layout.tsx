@@ -3,6 +3,7 @@ import { Vazirmatn } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TopNavBar } from "@/components/layout/TopNavBar";
+import { BottomNavBar } from "@/components/layout/BottomNavBar";
 import { GlobalFooter } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { Circle } from "lucide-react";
@@ -15,31 +16,31 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "ویترین‌شاپ - فروشگاه اینترنتی",
+  title: "ویترین استور - فروشگاه اینترنتی مدرن",
   description:
-    "ویترین‌شاپ یک قالب فروشگاه اینترنتی مدرن بر پایه Next.js است.",
+    "ویترین استور یک فروشگاه اینترنتی مدرن است که با استفاده از Next.js تجربه‌ای سریع، امن و فارسی‌سازی شده برای خرید آنلاین فراهم می‌کند.",
 };
 
 const mockLinks = [
   {
     icon: <Circle size={12} className="text-gray-400" />,
-    text: "تخفیف‌ها و پیشنهادها",
+    text: "تخفیف‌ها و پیشنهادهای ویژه",
     href: "/discounts",
   },
   {
     icon: <Circle size={12} className="text-gray-400" />,
-    text: "پرفروش‌ترین‌ها",
+    text: "پرفروش‌ترین محصولات",
     href: "/bestsellers",
   },
   {
     icon: <Circle size={12} className="text-gray-400" />,
-    text: "خرید اقساطی",
-    href: "/installments",
+    text: "تماس با ما",
+    href: "/contact",
   },
   {
     icon: <Circle size={12} className="text-gray-400" />,
-    text: "کارت هدیه",
-    href: "/gift-card",
+    text: "مجله و مقالات",
+    href: "/blog",
   },
 ];
 
@@ -68,9 +69,10 @@ export default function RootLayout({
               initialCartCount={3}
               linksData={mockLinks}
             />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <GlobalFooter />
           </div>
+          <BottomNavBar cartCount={3} />
           <Toaster richColors closeButton dir="rtl" />
         </ThemeProvider>
       </body>

@@ -8,7 +8,7 @@ export interface Category {
 export const megaMenuCategories: Category[] = [
   {
     id: "digital-goods",
-    title: "کالای دیجیتال",
+    title: "کالای دیجیتال و لوازم جانبی",
     icon: "Smartphone",
     children: [
       {
@@ -25,23 +25,23 @@ export const megaMenuCategories: Category[] = [
         title: "لپ‌تاپ و کامپیوتر",
         children: [
           { id: "laptops-gaming", title: "لپ‌تاپ گیمینگ" },
-          { id: "laptops-ultrabook", title: "اولترابوک و سبک" },
+          { id: "laptops-ultrabook", title: "اولترابوک و دانشجویی" },
         ],
       },
       {
         id: "cameras",
-        title: "دوربین عکاسی",
+        title: "دوربین و عکاسی",
         children: [
-          { id: "dslr", title: "دوربین حرفه‌ای DSLR" },
+          { id: "dslr", title: "دوربین DSLR" },
           { id: "mirrorless", title: "دوربین بدون آینه" },
         ],
       },
       {
         id: "consoles",
-        title: "کنسول بازی",
+        title: "کنسول بازی و گیمینگ",
         children: [
-          { id: "ps5", title: "پلی‌استیشن ۵" },
-          { id: "xbox", title: "ایکس‌باکس" },
+          { id: "ps5", title: "پلی استیشن ۵" },
+          { id: "xbox", title: "Xbox Series" },
         ],
       },
     ],
@@ -68,7 +68,7 @@ export const megaMenuCategories: Category[] = [
     children: [
       {
         id: "mens-clothing",
-        title: "لباس مردانه",
+        title: "پوشاک مردانه",
         children: [
           { id: "mens-shirts", title: "پیراهن مردانه" },
           { id: "mens-trousers", title: "شلوار مردانه" },
@@ -76,10 +76,10 @@ export const megaMenuCategories: Category[] = [
       },
       {
         id: "womens-clothing",
-        title: "لباس زنانه",
+        title: "پوشاک زنانه",
         children: [
           { id: "womens-dresses", title: "پیراهن و مانتو زنانه" },
-          { id: "womens-trousers", title: "شلوار زنانه" },
+          { id: "womens-trousers", title: "شلوار و شلوارک زنانه" },
         ],
       },
     ],
@@ -92,7 +92,7 @@ export const megaMenuCategories: Category[] = [
   },
   {
     id: "beauty",
-    title: "سلامت و زیبایی",
+    title: "آرایشی، بهداشتی و سلامت",
     icon: "Gamepad2",
     children: [],
   },

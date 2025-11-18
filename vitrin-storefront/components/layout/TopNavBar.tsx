@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingCart, Menu, Grid } from "lucide-react";
+import { Search, ShoppingCart, Grid } from "lucide-react";
 
 import { RightMegaMenu } from "./RightMegaMenu";
 
@@ -23,93 +23,84 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
     <>
       <header className="sticky top-0 z-30 shadow-soft">
         {/* First Row */}
-        <div className="bg-header-bg border-b border-header-border h-[70px]">
-          <div className="container mx-auto px-4 flex justify-between items-center h-full">
+        <div className="h-[70px] border-b border-header-border bg-header-bg">
+          <div className="container mx-auto flex h-full items-center justify-between px-4">
             {/* Right Section: Logo */}
             <div className="flex items-center">
-              <Link href="/" aria-label="بازگشت به صفحه اصلی">
-                <img src={logoSrc} alt="لوگوی فروشگاه" className="h-10 w-auto" />
+              <Link
+                href="/"
+                aria-label="بازگشت به صفحه اصلی فروشگاه"
+              >
+                <img
+                  src={logoSrc}
+                  alt="ویترین استور"
+                  className="h-10 w-auto"
+                />
               </Link>
             </div>
 
             {/* Center Section: Search Bar (Desktop) */}
-            <div className="hidden md:flex flex-1 justify-center px-8">
-              <div className="w-full max-w-lg relative">
+            <div className="hidden flex-1 justify-center px-8 md:flex">
+              <div className="relative w-full max-w-lg">
                 <input
                   type="text"
-                  placeholder="محصول، برند یا دسته مورد نظر خود را جستجو کنید..."
+                  placeholder="جستجو در بین هزاران کالا، برند یا دسته‌بندی..."
                   aria-label="جستجوی محصولات"
-                  className="w-full px-4 py-2 pr-10 rounded-lg shadow-soft border border-transparent focus:border-brand-secondary focus:ring-0"
+                  className="w-full rounded-lg border border-transparent px-4 py-2 pr-10 shadow-soft focus:border-brand-secondary focus:ring-0"
                 />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                   <Search className="h-5 w-5 text-text-secondary" />
                 </div>
               </div>
             </div>
 
             {/* Left Section: Auth & Cart (Desktop) */}
-            <div className="hidden md:flex items-center space-x-4 space-x-reverse">
-              <button className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm">
+            <div className="hidden items-center space-x-4 space-x-reverse md:flex">
+              <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm text-white">
                 ورود
               </button>
-              <button className="px-4 py-2 border border-brand-secondary text-brand-primary rounded-lg text-sm">
+              <button className="rounded-lg border border-brand-secondary px-4 py-2 text-sm text-brand-primary">
                 ثبت‌نام
               </button>
               <div className="h-6 w-px bg-header-border" />
               <div className="relative">
                 <button
-                  aria-label={`سبد خرید با ${initialCartCount} کالا`}
+                  aria-label={`مشاهده سبد خرید، شامل ${initialCartCount} کالا`}
                 >
                   <ShoppingCart className="h-6 w-6 text-text-primary" />
                 </button>
                 {initialCartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex items-center justify-center h-5 w-5 rounded-full bg-badge-bg text-badge-text text-xs">
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-badge-bg text-xs text-badge-text">
                     {initialCartCount}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Mobile Section: Hamburger Menu & Cart */}
-            <div className="md:hidden flex items-center justify-between w-full">
+            {/* Mobile Section: Search Only */}
+            <div className="flex items-center md:hidden">
               <button
-                onClick={() => setIsRightMenuOpen(true)}
-                aria-label="باز کردن منوی دسته‌بندی‌ها"
-                aria-expanded={isRightMenuOpen}
+                aria-label="جستجو"
+                className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
               >
-                <Grid className="h-6 w-6 text-text-primary" />
-              </button>
-              <div className="relative">
-                <button
-                  aria-label={`سبد خرید با ${initialCartCount} کالا`}
-                >
-                  <ShoppingCart className="h-6 w-6 text-text-primary" />
-                </button>
-                {initialCartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex items-center justify-center h-5 w-5 rounded-full bg-badge-bg text-badge-text text-xs">
-                    {initialCartCount}
-                  </span>
-                )}
-              </div>
-              <button aria-label="باز کردن منوی اصلی">
-                <Menu className="h-6 w-6 text-text-primary" />
+                <Search className="h-6 w-6 text-text-primary" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Second Row */}
-        <nav className="hidden md:block bg-white border-b border-header-border h-[40px]">
-          <div className="container mx-auto px-4 flex items-center h-full">
+        {/* Second Row - Desktop Only */}
+        <nav className="hidden h-[40px] border-b border-header-border bg-white md:flex">
+          <div className="container mx-auto flex h-full items-center px-4">
             <button
               onClick={() => setIsRightMenuOpen(true)}
               className="flex items-center space-x-2 space-x-reverse text-sm font-bold text-text-primary"
               aria-expanded={isRightMenuOpen}
             >
               <Grid className="h-5 w-5" />
-              <span>دسته‌بندی کالاها</span>
+              <span>همه دسته‌بندی‌های کالا</span>
             </button>
-            <div className="h-4 w-px bg-header-border mx-4" />
+            <div className="mx-4 h-4 w-px bg-header-border" />
             <ul className="flex space-x-6 space-x-reverse">
               {linksData.map((link, index) => (
                 <li key={index}>

@@ -14,7 +14,10 @@ interface RightMegaMenuProps {
   onClose: () => void;
 }
 
-export const RightMegaMenu: React.FC<RightMegaMenuProps> = ({ open, onClose }) => {
+export const RightMegaMenu: React.FC<RightMegaMenuProps> = ({
+  open,
+  onClose,
+}) => {
   const { stack, push, pop, reset } = useMegaMenuStack(megaMenuCategories);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,20 +55,20 @@ export const RightMegaMenu: React.FC<RightMegaMenuProps> = ({ open, onClose }) =
     <AnimatePresence>
       {open && (
         <>
-          {/* Overlay زیر هدر */}
+          {/* Overlay پس‌زمینه تیره منو */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-x-0 bottom-0 top-[70px] md:top-[110px] bg-black/40 z-40"
+            className="fixed inset-x-0 bottom-0 top-[70px] z-40 bg-black/40 md:top-[110px]"
             aria-hidden="true"
           />
 
-          {/* Menu Wrapper – فقط زیر هدر، نه تمام صفحه */}
+          {/* Menu Wrapper - خود منوی کناری */}
           <div
             ref={menuRef}
-            className="fixed right-0 z-50 top-[70px] h-[calc(100vh-70px)] md:top-[110px] md:h-[calc(100vh-110px)]"
+            className="fixed right-0 top-[70px] z-50 h-[calc(100vh-70px)] md:top-[110px] md:h-[calc(100vh-110px)]"
             dir="rtl"
           >
             <motion.div
@@ -73,7 +76,7 @@ export const RightMegaMenu: React.FC<RightMegaMenuProps> = ({ open, onClose }) =
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="h-full flex justify-end"
+              className="flex h-full justify-end"
             >
               <AnimatePresence initial={false}>
                 {stack.map((panel) => (
@@ -89,8 +92,8 @@ export const RightMegaMenu: React.FC<RightMegaMenuProps> = ({ open, onClose }) =
 
             <button
               onClick={onClose}
-              className="absolute top-4 left-4 z-[100] p-2 bg-white rounded-full text-gray-700 shadow-lg hover:bg-gray-100 transition-all"
-              aria-label="بستن منوی دسته‌بندی"
+              className="absolute top-4 left-4 z-[100] rounded-full bg-white p-2 text-gray-700 shadow-lg transition-all hover:bg-gray-100"
+              aria-label="بستن منوی دسته‌بندی‌ها"
             >
               <X size={24} />
             </button>

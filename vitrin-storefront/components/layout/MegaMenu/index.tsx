@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, Dispatch, SetStateAction } from 're
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, X } from 'lucide-react';
-import { megaMenuData, Level1Category, Level2Category, Level3Item } from './mega-menu-data';
+import { megaMenuData, Level1Category, Level2Category, Level3Category } from './mega-menu-data';
 import { useOnClickOutside } from '../../hooks/use-on-click-outside';
 
 interface MegaMenuProps {
@@ -15,7 +15,7 @@ interface MegaMenuProps {
 interface Panel {
   id: string;
   title: string;
-  data: (Level1Category | Level2Category | Level3Item)[];
+  data: (Level1Category | Level2Category | Level3Category)[];
   level: number;
 }
 

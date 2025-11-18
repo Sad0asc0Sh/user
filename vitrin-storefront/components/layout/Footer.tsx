@@ -2,31 +2,32 @@ import { Store, Twitter, Instagram, Linkedin } from "lucide-react";
 
 export function GlobalFooter() {
   return (
-    <footer className="bg-muted/40 border-t">
+    <footer className="border-t bg-muted/40">
       <div className="container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* About & Logo */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-right">
-            <a href="/" className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col items-center text-center md:items-start md:text-right">
+            <a href="/" className="mb-4 flex items-center gap-2">
               <Store className="h-7 w-7" />
-              <span className="text-xl font-bold">ویترین‌شاپ</span>
+              <span className="text-xl font-bold">ویترین استور</span>
             </a>
-            <p className="text-muted-foreground text-sm">
-              ویترین‌شاپ یک فروشگاه اینترنتی نمونه است که برای طراحی رابط کاربری
-              و تمرین توسعه فرانت‌اند استفاده می‌شود.
+            <p className="text-sm text-muted-foreground">
+              ویترین استور یک فروشگاه اینترنتی مدرن است که تلاش می‌کند
+              بهترین تجربه خرید آنلاین را با تنوع بالای کالا، قیمت مناسب و
+              پشتیبانی حرفه‌ای برای شما فراهم کند.
             </p>
           </div>
 
           {/* Important Links */}
           <div>
-            <h4 className="font-bold mb-4">لینک‌های مهم</h4>
+            <h4 className="mb-4 font-bold">لینک‌های مهم</h4>
             <ul className="space-y-2">
               <li>
                 <a
                   href="#"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  راهنمای خرید از فروشگاه
+                  درباره ویترین استور
                 </a>
               </li>
               <li>
@@ -50,7 +51,7 @@ export function GlobalFooter() {
                   href="#"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  پیگیری سفارش
+                  همکاری با ما
                 </a>
               </li>
             </ul>
@@ -58,8 +59,8 @@ export function GlobalFooter() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-bold mb-4">ارتباط با ما</h4>
-            <address className="not-italic space-y-2 text-muted-foreground">
+            <h4 className="mb-4 font-bold">تماس با ما</h4>
+            <address className="space-y-2 not-italic text-muted-foreground">
               <p>آدرس: تهران، خیابان نمونه، پلاک ۱۲</p>
               <p>
                 تلفن پشتیبانی:{" "}
@@ -70,13 +71,14 @@ export function GlobalFooter() {
                   ۰۲۱-۱۲۳۴۵۶۷۸
                 </a>
               </p>
+              <p>ایمیل: support@vitrin-store.com</p>
             </address>
           </div>
 
           {/* Social Media */}
           <div>
-            <h4 className="font-bold mb-4">ما را در شبکه‌های اجتماعی دنبال کنید</h4>
-            <div className="flex items-center justify-center md:justify-start gap-4">
+            <h4 className="mb-4 font-bold">ما را در شبکه‌های اجتماعی دنبال کنید</h4>
+            <div className="flex items-center justify-center gap-4 md:justify-start">
               <a
                 href="#"
                 className="text-muted-foreground hover:text-foreground"
@@ -100,10 +102,10 @@ export function GlobalFooter() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t mt-8 pt-6 text-center">
+        <div className="mt-8 border-t pt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} تمامی حقوق این قالب فروشگاهی برای شما
-            محفوظ است.
+            © {new Date().getFullYear()} ویترین استور – استفاده از مطالب فقط
+            برای مقاصد غیرتجاری و با ذکر منبع مجاز است.
           </p>
         </div>
       </div>

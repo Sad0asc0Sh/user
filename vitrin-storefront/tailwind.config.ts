@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 const config = {
@@ -25,17 +24,19 @@ const config = {
         bold: "700",
       },
       colors: {
-        // رنگ‌های اصلی بر اساس مشخصات
+        // O�U+U_�?OU�OUO OO�U,UO O"O� OO3OO3 U.O'OrO�OO�
         'header-bg': '#FFFFFF',
-        'header-border': '#E6E9EE', // خط جداکننده ظریف
-        'text-primary': '#1A202C', // متن اصلی (تیره‌تر)
-        'text-secondary': '#6B7280', // متن ثانویه خاکستری
-        'brand-primary': '#1E3A8A', // آبی/سرمه‌ای برای تاکیدها
-        'brand-secondary': '#D6E0FF', // آبی روشن‌تر (برای outline)
-        'badge-bg': '#EF4444', // قرمز ملایم بَج
+        'header-border': '#E6E9EE', // OrO� O�O_OUcU+U+O_U� O,O�UOU?
+        'text-primary': '#1A202C', // U.O�U+ OO�U,UO (O�UOO�U؃?OO�O�)
+        'text-secondary': '#6B7280', // U.O�U+ O�OU+U^UOU� OrOUcO3O�O�UO
+        'brand-primary': '#1E3A8A', // O�O"UO/O3O�U.U؃?OOUO O"O�OUO O�OUcUOO_U�O
+        'brand-secondary': '#D6E0FF', // O�O"UO O�U^O'U+�?OO�O� (O"O�OUO outline)
+        'badge-bg': '#EF4444', // U,O�U.O� U.U,OUOU. O"UZO�
         'badge-text': '#FFFFFF',
         'mega-menu-accent': '#DCEBFF', // Pastel blue for accents
         'mega-menu-accent-light': '#EFF5FF', // Lighter pastel blue for backgrounds
+        'sale-bg': '#EF4444',
+        'sale-text': '#FFFFFF',
         
         // Original colors needed for base styles
         border: "hsl(var(--border))",
@@ -77,12 +78,13 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "0.5rem", // 8px (یا 0.75rem برای 12px)
+        lg: "0.5rem", // 8px (UOO 0.75rem O"O�OUO 12px)
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'soft': '0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)', // سایه ملایم
+        'soft': '0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)', // O3OUOU� U.U,OUOU.
+        'soft-lg': '0 18px 45px -12px rgb(15 23 42 / 0.20)', // U.O,O�O�O3O� U.U,OUOU. O3OO�U,U�
       },
       keyframes: {
         "accordion-down": {

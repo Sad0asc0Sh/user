@@ -1,114 +1,178 @@
+"use client";
+
+import { Heart, ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export interface ProductCardProps {
-  title: string;
+export interface Product {
+  id: string;
+  name: string;
+  category?: string;
   price: number;
-  originalPrice?: number;
-  imageUrl: string;
-  discount?: boolean;
+  priceAfterDiscount?: number;
+  image: string;
+  rating?: number;
   isNew?: boolean;
+  hasDiscount?: boolean;
+}
+
+interface ProductCardProps {
+  product: Product;
+  isLoading?: boolean;
   className?: string;
 }
 
 export function ProductCard({
-  title,
-  price,
-  originalPrice,
-  imageUrl,
-  discount,
-  isNew,
+  product,
+  isLoading = false,
   className,
 }: ProductCardProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className={cn("overflow-hidden rounded-xl bg-white", className)}>
+        <Skeleton className="aspect-square w-full" />
+        <div className="space-y-3 p-4">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  const discountPercentage = product.priceAfterDiscount
+    ? Math.round(
+        ((product.price - product.priceAfterDiscount) / product.price) * 100
+      )
+    : 0;
+
   return (
     <div
       className={cn(
-        "group relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-100 bg-white/90 shadow-[0_14px_40px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(15,23,42,0.12)]",
+        "group relative overflow-hidden rounded-xl bg-white border border-transparent",
+        "transition-all duration-300 ease-out",
+        "hover:border-header-border hover:shadow-soft",
         className
       )}
     >
-      <div className="relative">
-        {/* Badges */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
-          {discount && (
-            <span className="rounded-full bg-destructive/90 px-3 py-1 text-xs font-medium text-destructive-foreground shadow-sm">
-              تخفیف
-            </span>
+      {/* Image Section */}
+      <div className="relative aspect-square overflow-hidden bg-gray-50">
+        {!imageLoaded && <Skeleton className="absolute inset-0" />}
+        <Image
+          src={product.image}
+          alt={product.name}
+          fill
+          className={cn(
+            "object-cover transition-all duration-300",
+            "group-hover:scale-105",
+            imageLoaded ? "opacity-100" : "opacity-0"
           )}
-          {isNew && (
-            <span className="rounded-full bg-primary/90 px-3 py-1 text-xs font-medium text-primary-foreground shadow-sm">
+          onLoad={() => setImageLoaded(true)}
+        />
+
+        {/* Badges - Top Right (RTL) */}
+        <div className="absolute right-3 top-3 flex flex-col gap-2">
+          {product.hasDiscount && discountPercentage > 0 && (
+            <Badge
+              variant="destructive"
+              className="bg-badge-bg text-badge-text shadow-sm"
+            >
+              {discountPercentage}% تخفیف
+            </Badge>
+          )}
+          {product.isNew && (
+            <Badge className="bg-brand-primary text-white shadow-sm">
               جدید
+            </Badge>
+          )}
+        </div>
+
+        {/* Wishlist Button - Top Left (RTL) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "absolute left-3 top-3 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm",
+            "transition-all duration-200 hover:bg-white hover:scale-110",
+            "shadow-sm opacity-0 group-hover:opacity-100"
+          )}
+          onClick={() => setIsWishlisted(!isWishlisted)}
+        >
+          <Heart
+            className={cn(
+              "h-5 w-5 transition-colors",
+              isWishlisted ? "fill-red-500 text-red-500" : "text-gray-600"
+            )}
+          />
+        </Button>
+      </div>
+
+      {/* Content Section */}
+      <div className="space-y-3 p-4 text-right">
+        {/* Category */}
+        {product.category && (
+          <p className="text-xs text-text-secondary">{product.category}</p>
+        )}
+
+        {/* Title */}
+        <h3 className="line-clamp-2 leading-snug font-bold text-text-primary">
+          {product.name}
+        </h3>
+
+        {/* Rating */}
+        {product.rating !== undefined && (
+          <div className="flex items-center justify-end gap-1">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Star
+                key={index}
+                className={cn(
+                  "h-4 w-4",
+                  index < Math.floor(product.rating!)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "fill-gray-200 text-gray-200"
+                )}
+              />
+            ))}
+            <span className="mr-2 text-xs text-text-secondary">
+              ({product.rating.toFixed(1)})
+            </span>
+          </div>
+        )}
+
+        {/* Price */}
+        <div className="flex items-center justify-end gap-2">
+          {product.priceAfterDiscount ? (
+            <>
+              <span className="text-lg font-bold text-text-primary">
+                {product.priceAfterDiscount.toLocaleString("fa-IR")} تومان
+              </span>
+              <span className="text-sm text-text-secondary line-through">
+                {product.price.toLocaleString("fa-IR")}
+              </span>
+            </>
+          ) : (
+            <span className="text-lg font-bold text-text-primary">
+              {product.price.toLocaleString("fa-IR")} تومان
             </span>
           )}
         </div>
 
-        {/* Image */}
-        <div className="aspect-square w-full overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100">
-          <Image
-            src={imageUrl}
-            alt={title}
-            width={400}
-            height={400}
-            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-          />
-        </div>
-
-        {/* Actions on Hover */}
-        <div className="absolute inset-0 hidden items-center justify-center gap-2 bg-white/70 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 md:flex">
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full border-none bg-white text-slate-700 shadow-sm hover:bg-slate-100"
-          >
-            <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
-            <span className="sr-only">
-              افزودن به سبد خرید
-            </span>
-          </Button>
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full border-none bg-white text-rose-500 shadow-sm hover:bg-rose-50"
-          >
-            <Heart className="h-5 w-5" strokeWidth={1.5} />
-            <span className="sr-only">
-              افزودن به علاقه‌مندی‌ها
-            </span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pb-4 pt-3">
-        <h3 className="mb-1.5 line-clamp-2 text-base font-semibold text-slate-900">
-          {title}
-        </h3>
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-primary">
-              {price.toLocaleString("fa-IR")} تومان
-            </span>
-            {originalPrice && (
-              <span className="text-sm text-slate-400 line-through">
-                {originalPrice.toLocaleString("fa-IR")}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile-only Add to Cart Button */}
-      <div className="border-t border-slate-100 bg-slate-50/60 p-2 md:hidden">
-        <Button
-          variant="outline"
-          className="w-full rounded-full border-none bg-white shadow-sm"
-        >
-          <ShoppingCart className="ml-2 h-4 w-4" strokeWidth={1.5} />
+        {/* Add to Cart Button */}
+        <Button variant="outline" className="w-full gap-2 font-medium">
+          <ShoppingCart className="h-4 w-4" />
           افزودن به سبد خرید
         </Button>
       </div>
     </div>
   );
 }
+

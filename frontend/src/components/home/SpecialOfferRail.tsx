@@ -8,7 +8,7 @@ import { Timer } from "lucide-react";
 
 export default function SpecialOfferRail() {
     return (
-        <div className="py-8 bg-welf-100 relative overflow-hidden">
+        <div className="py-8 bg-gray-600 relative overflow-hidden">
             {/* Golden Strips Decoration */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-vita-400 to-vita-600 opacity-80" />
             <div className="absolute bottom-0 right-0 w-full h-1 bg-gradient-to-l from-vita-400 to-vita-600 opacity-80" />

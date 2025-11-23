@@ -9,12 +9,65 @@ const SheetContext = React.createContext<{
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 } | null>(null);
 
-export const Sheet = ({ children }: { children: React.ReactNode }) => {
-    const [open, setOpen] = React.useState(false);
+export const Sheet = ({
+    children,
+    open: controlledOpen,
+    onOpenChange
+}: {
+    children: React.ReactNode;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+}) => {
+    const [internalOpen, setInternalOpen] = React.useState(false);
+
+    const isControlled = controlledOpen !== undefined;
+    const open = isControlled ? controlledOpen : internalOpen;
+
+    const setOpen = React.useCallback((newOpen: boolean | ((prev: boolean) => boolean)) => {
+        const nextOpen = typeof newOpen === 'function' ? newOpen(open) : newOpen;
+
+        if (!isControlled) {
+            setInternalOpen(nextOpen);
+        }
+
+        onOpenChange?.(nextOpen);
+    }, [isControlled, open, onOpenChange]);
+
     return (
         <SheetContext.Provider value={{ open, setOpen }}>
             {children}
         </SheetContext.Provider>
+    );
+};
+
+export const SheetClose = ({
+    className,
+    children,
+    asChild,
+}: {
+    className?: string;
+    children?: React.ReactNode;
+    asChild?: boolean;
+}) => {
+    const context = React.useContext(SheetContext);
+    if (!context) throw new Error("SheetClose must be used within a Sheet");
+    const { setOpen } = context;
+
+    const handleClick = () => setOpen(false);
+
+    if (asChild && React.isValidElement(children)) {
+        return React.cloneElement(children as React.ReactElement<{ onClick?: React.MouseEventHandler }>, {
+            onClick: (e: React.MouseEvent) => {
+                (children.props as { onClick?: React.MouseEventHandler }).onClick?.(e);
+                handleClick();
+            },
+        });
+    }
+
+    return (
+        <button onClick={handleClick} className={className}>
+            {children}
+        </button>
     );
 };
 

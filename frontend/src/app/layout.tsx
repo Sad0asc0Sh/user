@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
+import ServicesWidget from "@/components/features/services/ServicesWidget";
 
 const vazirmatn = Vazirmatn({
   subsets: ["arabic", "latin"],
@@ -24,7 +25,8 @@ export default function RootLayout({
       <body className={`font-sans antialiased bg-gray-50 text-gray-900 ${vazirmatn.className}`}>
         <main className="min-h-screen flex flex-col">
           <Header />
-          <div className="flex-grow pb-24">{children}</div>
+          <div className="flex-grow pb-32">{children}</div>
+          <ServicesWidget />
           <Footer />
           <BottomNav />
         </main>

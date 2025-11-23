@@ -9,7 +9,8 @@ import { ChevronLeft, Percent } from "lucide-react";
 
 export default function SpecialOfferRail() {
     return (
-        <div className="py-5 bg-[#ef4056] relative overflow-hidden">
+        // 👇👇👇 تغییر ۱: رنگ پس‌زمینه اصلی به خاکستری تیره 👇👇👇
+        <div className="py-5 bg-gray-900 relative overflow-hidden touch-pan-y">
             <div className="container mx-auto">
                 {/* Header Section */}
                 <div className="px-4 mb-3 flex items-center justify-between">
@@ -24,11 +25,12 @@ export default function SpecialOfferRail() {
 
                     {/* Center: Timer (Boxed) */}
                     <div className="flex items-center gap-1 text-white font-bold text-xs dir-ltr">
-                        <div className="bg-white text-[#ef4056] w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">05</div>
+                        {/* 👇👇👇 تغییر ۲: رنگ متن تایمرها به رنگ برند (Vita) 👇👇👇 */}
+                        <div className="bg-white text-vita-600 w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">05</div>
                         <span className="mb-1">:</span>
-                        <div className="bg-white text-[#ef4056] w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">18</div>
+                        <div className="bg-white text-vita-600 w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">18</div>
                         <span className="mb-1">:</span>
-                        <div className="bg-white text-[#ef4056] w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">10</div>
+                        <div className="bg-white text-vita-600 w-7 h-7 flex items-center justify-center rounded-[4px] shadow-sm">10</div>
                     </div>
 
                     {/* Left: See All */}
@@ -47,8 +49,6 @@ export default function SpecialOfferRail() {
                     className="w-full !px-4 !pb-2"
                     grabCursor={true}
                 >
-                    {/* First Slide: Special Offer Banner (Optional placeholder) */}
-
                     {PRODUCTS.map((product) => (
                         <SwiperSlide key={product.id} style={{ width: "148px", height: "auto" }}>
                             <div className="bg-white p-3 rounded-lg h-full flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
@@ -56,7 +56,6 @@ export default function SpecialOfferRail() {
                                 {/* Image */}
                                 <div className="aspect-square w-full mb-3 relative flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
                                     <div className="w-full h-full bg-gray-100 group-hover:scale-105 transition-transform duration-500" />
-                                    {/* Placeholder for actual image - in real app use <Image /> */}
                                 </div>
 
                                 {/* Title */}
@@ -70,7 +69,8 @@ export default function SpecialOfferRail() {
                                     <div className="flex items-center justify-between h-5">
                                         {product.discount > 0 ? (
                                             <>
-                                                <div className="bg-[#ef4056] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                                                {/* 👇👇👇 تغییر ۳: رنگ برچسب تخفیف به رنگ برند 👇👇👇 */}
+                                                <div className="bg-vita-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                                                     {product.discount}٪
                                                 </div>
                                                 <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
@@ -95,7 +95,8 @@ export default function SpecialOfferRail() {
                     {/* "See All" Card (Last Slide) */}
                     <SwiperSlide style={{ width: "148px", height: "auto" }}>
                         <div className="bg-white h-full rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer group border border-transparent hover:border-gray-100">
-                            <div className="w-12 h-12 border border-gray-100 rounded-full flex items-center justify-center text-[#ef4056] group-hover:bg-gray-50 transition-colors">
+                            {/* 👇👇👇 تغییر ۴: رنگ دکمه مشاهده همه 👇👇👇 */}
+                            <div className="w-12 h-12 border border-gray-100 rounded-full flex items-center justify-center text-vita-600 group-hover:bg-gray-50 transition-colors">
                                 <ChevronLeft size={24} />
                             </div>
                             <span className="text-sm font-bold text-gray-700">مشاهده همه</span>

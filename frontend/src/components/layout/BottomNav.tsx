@@ -1,8 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutGrid, ShoppingCart, BookOpen, User, Wrench } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Home, LayoutGrid, ShoppingCart, BookOpen, User } from "lucide-react";
 
 export default function BottomNav() {
     const pathname = usePathname();
@@ -27,27 +26,6 @@ export default function BottomNav() {
                         <span className="text-[10px] font-medium">{item.label}</span>
                     </Link>
                 ))}
-
-                {/* The Service Sheet Trigger (Wrench) */}
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <button className="flex flex-col items-center gap-1 text-welf-500 hover:text-vita-500 transition-colors">
-                            <Wrench size={20} />
-                            <span className="text-[10px] font-medium">خدمات</span>
-                        </button>
-                    </SheetTrigger>
-                    <SheetContent side="bottom" className="rounded-t-xl h-[50vh]">
-                        <SheetHeader>
-                            <SheetTitle className="text-center font-bold font-sans">خدمات وب‌سایت</SheetTitle>
-                        </SheetHeader>
-                        <div className="grid grid-cols-3 gap-4 p-4">
-                            {/* Place service shortcuts here */}
-                            <div className="p-4 bg-gray-50 rounded-lg text-center text-xs flex items-center justify-center h-20">پیگیری سفارش</div>
-                            <div className="p-4 bg-gray-50 rounded-lg text-center text-xs flex items-center justify-center h-20">اسمبل هوشمند</div>
-                            <div className="p-4 bg-gray-50 rounded-lg text-center text-xs flex items-center justify-center h-20">پشتیبانی</div>
-                        </div>
-                    </SheetContent>
-                </Sheet>
             </div>
         </nav>
     );

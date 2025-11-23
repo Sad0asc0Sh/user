@@ -16,6 +16,7 @@ export default function Home() {
       <FlashOfferRail />
       <SpecialOfferRail />
       <ProductRail title="پرفروش‌ترین‌ها" products={PRODUCTS} />
+      <ProductRail title="جدیدترین‌ها" products={PRODUCTS} />
       <ServicesGrid />
       <BrandsStrip />
       <ValueProposition />

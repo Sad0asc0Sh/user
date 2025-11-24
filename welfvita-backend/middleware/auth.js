@@ -1,10 +1,12 @@
 const jwt = require('jsonwebtoken')
 const Admin = require('../models/Admin')
+const User = require('../models/User')
 
 const JWT_SECRET =
   process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
 
 // احراز هویت بر اساس توکن JWT
+// Supports both Admin (email/password) and Customer User (OTP) authentication
 const protect = async (req, res, next) => {
   try {
     let token
@@ -25,23 +27,50 @@ const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET)
 
-    const admin = await Admin.findById(decoded.id)
+    // Check if it's a customer or admin user
+    // Customer tokens include type: 'customer' in payload
+    let user
 
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: 'کاربر ادمین یافت نشد',
-      })
+    if (decoded.type === 'customer') {
+      // Look up in User (customer) collection
+      user = await User.findById(decoded.id)
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'کاربر یافت نشد',
+        })
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'حساب کاربری غیرفعال است',
+        })
+      }
+    } else {
+      // Look up in Admin collection (legacy/backward compatibility)
+      user = await Admin.findById(decoded.id)
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'کاربر ادمین یافت نشد',
+        })
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'حساب کاربری ادمین غیرفعال است',
+        })
+      }
     }
 
-    if (!admin.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'حساب کاربری ادمین غیرفعال است',
-      })
-    }
-
-    req.user = admin
+    // Attach user to request
+    req.user = user
+    req.userId = user._id
+    req.userType = decoded.type || 'admin'
 
     next()
   } catch (error) {

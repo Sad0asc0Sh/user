@@ -7,6 +7,11 @@ const { sendResetPasswordEmail } = require('../utils/notificationService')
 const { protect } = require('../middleware/auth')
 const { upload } = require('../middleware/upload')
 const { updateMyProfile, updateMyAvatar } = require('../controllers/authController')
+const {
+  sendOtp,
+  verifyOtp,
+  getProfile: getCustomerProfile,
+} = require('../controllers/customerAuthController')
 
 // JWT configuration
 const JWT_SECRET =
@@ -22,6 +27,26 @@ const generateToken = (userId) => {
     expiresIn: JWT_EXPIRE,
   })
 }
+
+// ============================================
+// CUSTOMER AUTHENTICATION ROUTES (OTP-based)
+// ============================================
+
+// POST /api/auth/send-otp
+// Send OTP code to customer mobile number
+router.post('/send-otp', sendOtp)
+
+// POST /api/auth/verify-otp
+// Verify OTP and login customer
+router.post('/verify-otp', verifyOtp)
+
+// GET /api/auth/profile
+// Get customer profile (requires authentication)
+router.get('/profile', protect, getCustomerProfile)
+
+// ============================================
+// ADMIN AUTHENTICATION ROUTES (Email/Password)
+// ============================================
 
 // ============================================
 // Shared login handler with optional role check

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(if not exist \"src\\lib\" mkdir \"src\\lib\")",
+      "Bash(cat:*)",
+      "Bash(node /tmp/write-pdp.js:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

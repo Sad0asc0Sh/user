@@ -2,11 +2,10 @@ import HeroSection from "@/components/home/HeroSection";
 import CategoryRail from "@/components/home/CategoryRail";
 import FlashOfferRail from "@/components/home/FlashOfferRail";
 import SpecialOfferRail from "@/components/home/SpecialOfferRail";
-import ProductRail from "@/components/home/ProductRail";
+import ProductRailContainer from "@/components/home/ProductRailContainer";
 import ServicesGrid from "@/components/home/ServicesGrid";
 import BrandsStrip from "@/components/home/BrandsStrip";
 import ValueProposition from "@/components/home/ValueProposition";
-import { PRODUCTS } from "@/lib/mock/homeData";
 
 export default function Home() {
   return (
@@ -15,8 +14,8 @@ export default function Home() {
       <CategoryRail />
       <FlashOfferRail />
       <SpecialOfferRail />
-      <ProductRail title="پرفروش‌ترین‌ها" products={PRODUCTS} />
-      <ProductRail title="جدیدترین‌ها" products={PRODUCTS} />
+      <ProductRailContainer title="پرفروش‌ترین‌ها" fetchType="bestSellers" limit={10} />
+      <ProductRailContainer title="جدیدترین‌ها" fetchType="newest" limit={10} />
       <ServicesGrid />
       <BrandsStrip />
       <ValueProposition />

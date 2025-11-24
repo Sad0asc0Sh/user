@@ -1,17 +1,56 @@
 "use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     Edit2, Wallet, ChevronLeft, Box, CheckCircle2, XCircle, RefreshCcw,
     UserCheck, Heart, MessageSquare, MapPin, Bell, Clock, LogOut
 } from "lucide-react";
+import { authService, User } from "@/services/authService";
 
 export default function ProfilePage() {
-    // Mock User Data
-    const user = {
-        name: "کاربر ویلف‌ویتا",
-        phone: "09123456789",
-        walletBalance: 5400000,
-        orders: { processing: 2, delivered: 12, returned: 0, canceled: 1 }
+    const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Mock order data (to be replaced with real API later)
+    const orders = { processing: 2, delivered: 12, returned: 0, canceled: 1 };
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                // Check if user is authenticated
+                if (!authService.isAuthenticated()) {
+                    router.push("/login");
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+
+                // Fetch user profile from API
+                const profileData = await authService.getProfile();
+                setUser(profileData);
+            } catch (err: any) {
+                console.error("Failed to load profile:", err);
+                setError(err.message || "خطا در بارگذاری اطلاعات کاربر");
+
+                // If unauthorized, redirect to login
+                if (!authService.isAuthenticated()) {
+                    router.push("/login");
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProfile();
+    }, [router]);
+
+    const handleLogout = () => {
+        authService.logout();
+        // authService.logout() already redirects to home
     };
 
     // CLEANED MENU ITEMS (No Subscription/Settings)
@@ -24,6 +63,35 @@ export default function ProfilePage() {
         { icon: Clock, label: "بازدیدهای اخیر" },
     ];
 
+    // Loading State
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-vita-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm text-gray-500">در حال بارگذاری...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error State
+    if (error || !user) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="text-center">
+                    <p className="text-red-500 text-sm mb-4">{error || "خطا در بارگذاری اطلاعات"}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-2 bg-vita-500 text-white rounded-lg text-sm hover:bg-vita-600 transition"
+                    >
+                        تلاش مجدد
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
 
@@ -31,8 +99,8 @@ export default function ProfilePage() {
             <div className="bg-white p-5 pb-8 pt-8">
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-lg font-bold text-welf-900">{user.name}</h1>
-                        <span className="text-sm text-gray-400 font-mono">{user.phone}</span>
+                        <h1 className="text-lg font-bold text-welf-900">{user?.name || "کاربر"}</h1>
+                        <span className="text-sm text-gray-400 font-mono">{user?.mobile}</span>
                     </div>
                     <button className="text-vita-600 p-1 bg-vita-50 rounded-full">
                         <Edit2 size={18} />
@@ -50,7 +118,7 @@ export default function ProfilePage() {
                             <Wallet size={14} /> موجودی کیف پول
                         </span>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-bold">{user.walletBalance.toLocaleString("fa-IR")}</span>
+                            <span className="text-xl font-bold">{(user?.wallet || 0).toLocaleString("fa-IR")}</span>
                             <span className="text-xs opacity-80">تومان</span>
                         </div>
                     </div>
@@ -70,10 +138,10 @@ export default function ProfilePage() {
                     </Link>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                    <OrderStatusItem icon={Box} label="جاری" count={user.orders.processing} active />
-                    <OrderStatusItem icon={CheckCircle2} label="تحویل شده" count={user.orders.delivered} />
-                    <OrderStatusItem icon={RefreshCcw} label="مرجوعی" count={user.orders.returned} />
-                    <OrderStatusItem icon={XCircle} label="لغو شده" count={user.orders.canceled} />
+                    <OrderStatusItem icon={Box} label="جاری" count={orders.processing} active />
+                    <OrderStatusItem icon={CheckCircle2} label="تحویل شده" count={orders.delivered} />
+                    <OrderStatusItem icon={RefreshCcw} label="مرجوعی" count={orders.returned} />
+                    <OrderStatusItem icon={XCircle} label="لغو شده" count={orders.canceled} />
                 </div>
             </div>
 
@@ -98,12 +166,15 @@ export default function ProfilePage() {
                 ))}
 
                 {/* Logout Button */}
-                <Link href="/login" className="flex items-center justify-between p-4 hover:bg-red-50 cursor-pointer transition-colors group mt-2 border-t border-gray-100">
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-between p-4 hover:bg-red-50 cursor-pointer transition-colors group mt-2 border-t border-gray-100"
+                >
                     <div className="flex items-center gap-3">
                         <LogOut size={20} className="text-red-500" />
                         <span className="text-sm text-red-500 font-bold">خروج از حساب کاربری</span>
                     </div>
-                </Link>
+                </button>
             </div>
 
             {/* Version Footer */}

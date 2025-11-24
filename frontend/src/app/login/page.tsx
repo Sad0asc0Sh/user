@@ -3,12 +3,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Smartphone, Timer, ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { authService } from "@/services/authService";
 
 export default function LoginPage() {
     const [step, setStep] = useState<"phone" | "otp">("phone");
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
     const [timer, setTimer] = useState(120);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     // Countdown Timer Logic
@@ -20,13 +23,52 @@ export default function LoginPage() {
         return () => clearInterval(interval);
     }, [step, timer]);
 
-    const handlePhoneSubmit = () => {
-        if (phone.length >= 10) setStep("otp");
+    const handlePhoneSubmit = async () => {
+        if (phone.length < 10) return;
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Call authService to send OTP
+            const response = await authService.sendOtp(phone);
+
+            if (response.success) {
+                setStep("otp");
+                setTimer(response.expiresIn || 120); // Use server-provided expiry or default 120s
+            } else {
+                setError(response.message || "خطا در ارسال کد تایید");
+            }
+        } catch (err: any) {
+            console.error("OTP send error:", err);
+            setError(err.message || "خطا در ارسال کد تایید. لطفا دوباره تلاش کنید.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleOtpSubmit = () => {
-        // Mock Verification: Any 4 digit code works
-        if (otp.length === 4) router.push("/profile");
+    const handleOtpSubmit = async () => {
+        if (otp.length < 4) return;
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Call authService to verify OTP
+            const response = await authService.verifyOtp(phone, otp);
+
+            if (response.success && response.data?.token) {
+                // Authentication successful, redirect to profile
+                router.push("/profile");
+            } else {
+                setError(response.message || "کد تایید نامعتبر است");
+            }
+        } catch (err: any) {
+            console.error("OTP verify error:", err);
+            setError(err.message || "کد تایید نامعتبر است. لطفا دوباره تلاش کنید.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -45,6 +87,13 @@ export default function LoginPage() {
             </div>
 
             <div className="w-full max-w-xs space-y-6">
+                {/* Error Message Display */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm text-center animate-in fade-in slide-in-from-top duration-300">
+                        {error}
+                    </div>
+                )}
+
                 {step === "phone" ? (
                     // --- Phase 1: Phone Number ---
                     <div className="animate-in fade-in slide-in-from-right duration-500">
@@ -62,10 +111,10 @@ export default function LoginPage() {
                         </div>
                         <button
                             onClick={handlePhoneSubmit}
-                            disabled={phone.length < 10}
+                            disabled={phone.length < 10 || loading}
                             className="w-full mt-6 bg-gradient-to-r from-vita-500 to-vita-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-vita-200 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95"
                         >
-                            دریافت کد تایید
+                            {loading ? "در حال ارسال..." : "دریافت کد تایید"}
                         </button>
                     </div>
                 ) : (
@@ -96,10 +145,10 @@ export default function LoginPage() {
 
                         <button
                             onClick={handleOtpSubmit}
-                            disabled={otp.length < 4}
+                            disabled={otp.length < 4 || loading}
                             className="w-full mt-6 bg-welf-900 text-white font-bold py-4 rounded-xl shadow-lg shadow-gray-200 disabled:opacity-50 transition-all active:scale-95"
                         >
-                            ورود به حساب
+                            {loading ? "در حال بررسی..." : "ورود به حساب"}
                         </button>
                     </div>
                 )}

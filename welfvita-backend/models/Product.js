@@ -200,6 +200,30 @@ const ProductSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ============================================
+    // Time-Based Promotion Fields
+    // ============================================
+
+    // Flash Deal: Individual product countdown
+    isFlashDeal: {
+      type: Boolean,
+      default: false,
+    },
+    flashDealEndTime: {
+      type: Date,
+      // Only relevant if isFlashDeal === true
+    },
+
+    // Special Offer: Global campaign with shared countdown
+    isSpecialOffer: {
+      type: Boolean,
+      default: false,
+    },
+    specialOfferEndTime: {
+      type: Date,
+      // Used for the global "Special Offers" section countdown
+    },
   },
   {
     timestamps: true,

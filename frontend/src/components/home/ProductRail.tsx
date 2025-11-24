@@ -42,37 +42,48 @@ export default function ProductRail({ title, products }: ProductRailProps) {
 
                                 {/* Image */}
                                 <div className="aspect-square w-full mb-3 relative flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
-                                    <div className="w-full h-full bg-gray-100 group-hover:scale-105 transition-transform duration-500" />
+                                    <div className={`w-full h-full bg-gray-100 group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-60' : ''}`} />
                                     {/* Placeholder for actual image */}
+
+                                    {/* OUT OF STOCK OVERLAY */}
+                                    {product.countInStock === 0 && (
+                                        <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+                                            <span className="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                                                ناموجود
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Discount Badge (Only if in stock) */}
+                                    {product.countInStock > 0 && product.discount > 0 && (
+                                        <span className="absolute top-2 right-2 bg-[#ef4056] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full z-20">
+                                            {product.discount}٪
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Title */}
-                                <h3 className="text-[11px] font-bold text-gray-700 leading-5 line-clamp-2 mb-2 min-h-[40px]">
+                                <h3 className={`text-[11px] font-bold leading-5 line-clamp-2 mb-2 min-h-[40px] ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
                                     {product.name}
                                 </h3>
 
                                 {/* Price Section */}
                                 <div className="flex flex-col gap-1 mt-auto">
-                                    {/* Row 1: Discount Badge (if any) */}
+                                    {/* Row 1: Old Price (if discount and in stock) */}
                                     <div className="flex items-center justify-between h-5">
-                                        {product.discount > 0 ? (
-                                            <>
-                                                <div className="bg-[#ef4056] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                                                    {product.discount}٪
-                                                </div>
-                                                <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
-                                                    {(product.price * 1.1).toLocaleString("fa-IR")}
-                                                </span>
-                                            </>
+                                        {product.countInStock > 0 && product.discount > 0 ? (
+                                            <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
+                                                {(product.price * 1.1).toLocaleString("fa-IR")}
+                                            </span>
                                         ) : <div className="h-5" />}
                                     </div>
 
                                     {/* Row 2: Current Price */}
-                                    <div className="flex items-center justify-end gap-1 text-gray-800">
+                                    <div className={`flex items-center justify-end gap-1 ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-800'}`}>
                                         <span className="text-[15px] font-black tracking-tight">
                                             {product.price.toLocaleString("fa-IR")}
                                         </span>
-                                        <span className="text-[10px] font-medium text-gray-600">تومان</span>
+                                        <span className={`text-[10px] font-medium ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-600'}`}>تومان</span>
                                     </div>
                                 </div>
                             </div>

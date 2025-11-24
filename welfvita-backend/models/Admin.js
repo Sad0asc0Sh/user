@@ -120,5 +120,6 @@ UserSchema.methods.getResetPasswordToken = function () {
 // توجه: عمداً نام مدل را User انتخاب می‌کنیم تا از کالکشن `users` استفاده شود.
 // فایل هنوز Admin.js است ولی هرجا require('../models/Admin') صدا زده شود،
 // در واقع به مدل User (کالکشن users) وصل می‌شود.
-module.exports = mongoose.model('User', UserSchema)
-
+// Export Admin model that uses the shared `users` collection.
+module.exports =
+  mongoose.models.Admin || mongoose.model('Admin', UserSchema, 'users')

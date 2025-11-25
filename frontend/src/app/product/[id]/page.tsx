@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Store, Info, AlertCircle, Loader2 } from "lucide-react";
+import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Store, Info, AlertCircle, Loader2, Check } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
@@ -9,6 +9,7 @@ import "swiper/css/pagination";
 import Link from "next/link";
 import Image from "next/image";
 import { productService, Product, ProductColor } from "@/services/productService";
+import { useCart } from "@/hooks/useCart";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -18,6 +19,10 @@ export default function ProductDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [addedToCart, setAddedToCart] = useState(false);
+
+    const { addToCart } = useCart();
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -42,6 +47,28 @@ export default function ProductDetailPage() {
             loadProduct();
         }
     }, [id]);
+
+    const handleAddToCart = async () => {
+        if (!product) return;
+
+        try {
+            setAddingToCart(true);
+            await addToCart(product, 1, selectedColor?.hex);
+
+            // Show success state
+            setAddedToCart(true);
+
+            // Reset success state after 2 seconds
+            setTimeout(() => {
+                setAddedToCart(false);
+            }, 2000);
+        } catch (err) {
+            console.error("Error adding to cart:", err);
+            alert("خطا در افزودن به سبد خرید. لطفاً دوباره تلاش کنید.");
+        } finally {
+            setAddingToCart(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -124,6 +151,16 @@ export default function ProductDetailPage() {
                                     fill
                                     className="object-contain p-8"
                                 />
+                                {product.campaignLabel && (
+                                    <div className="absolute top-4 left-4 z-20">
+                                        <span className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
+                                                product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                                    'bg-gradient-to-r from-lime-500 to-orange-400'
+                                            }`}>
+                                            {product.campaignLabel}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </SwiperSlide>
                     ))}
@@ -253,13 +290,31 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
                 <button
-                    disabled={product.countInStock === 0}
-                    className={`flex-1 font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition-transform ${product.countInStock === 0
+                    onClick={handleAddToCart}
+                    disabled={product.countInStock === 0 || addingToCart}
+                    className={`flex-1 font-bold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                        product.countInStock === 0
                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            : "bg-gradient-to-r from-vita-500 to-vita-600 text-white shadow-vita-200"
-                        }`}
+                            : addedToCart
+                            ? "bg-green-500 text-white shadow-green-200"
+                            : "bg-gradient-to-r from-vita-500 to-vita-600 text-white shadow-vita-200 active:scale-95"
+                    }`}
                 >
-                    {product.countInStock === 0 ? "ناموجود" : "افزودن به سبد خرید"}
+                    {product.countInStock === 0 ? (
+                        "ناموجود"
+                    ) : addingToCart ? (
+                        <>
+                            <Loader2 className="animate-spin" size={18} />
+                            <span>در حال افزودن...</span>
+                        </>
+                    ) : addedToCart ? (
+                        <>
+                            <Check size={18} />
+                            <span>به سبد خرید اضافه شد</span>
+                        </>
+                    ) : (
+                        "افزودن به سبد خرید"
+                    )}
                 </button>
             </div>
 

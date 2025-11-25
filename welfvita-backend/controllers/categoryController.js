@@ -28,6 +28,7 @@ exports.getCategoryTree = async (req, res) => {
           icon: cat.icon,
           image: cat.image,
           isFeatured: cat.isFeatured,
+          isPopular: cat.isPopular,
           parent: cat.parent,
           slug: cat.slug,
           order: cat.order,
@@ -56,7 +57,7 @@ exports.getCategoryTree = async (req, res) => {
 // GET /api/categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const { limit = 1000, fields, parent, isFeatured } = req.query
+    const { limit = 1000, fields, parent, isFeatured, isPopular } = req.query
 
     const query = { isActive: true }
 
@@ -66,6 +67,10 @@ exports.getAllCategories = async (req, res) => {
 
     if (isFeatured !== undefined) {
       query.isFeatured = isFeatured === 'true'
+    }
+
+    if (isPopular !== undefined) {
+      query.isPopular = isPopular === 'true'
     }
 
     let categoriesQuery = Category.find(query)
@@ -125,7 +130,7 @@ exports.getCategoryById = async (req, res) => {
 // POST /api/categories
 exports.createCategory = async (req, res) => {
   try {
-    const { name, parent, description, isFeatured } = req.body
+    const { name, parent, description, isFeatured, isPopular } = req.body
 
     if (!name) {
       return res.status(400).json({
@@ -139,6 +144,7 @@ exports.createCategory = async (req, res) => {
       parent: parent && parent !== 'null' ? parent : null,
       description,
       isFeatured,
+      isPopular,
     }
 
     if (req.files) {
@@ -187,6 +193,7 @@ exports.updateCategory = async (req, res) => {
       parent,
       description,
       isFeatured,
+      isPopular,
       order,
       isActive,
       removeIcon,
@@ -253,6 +260,9 @@ exports.updateCategory = async (req, res) => {
     if (description !== undefined) category.description = description
     if (isFeatured !== undefined) {
       category.isFeatured = isFeatured === 'true' || isFeatured === true
+    }
+    if (isPopular !== undefined) {
+      category.isPopular = isPopular === 'true' || isPopular === true
     }
     if (order !== undefined) {
       category.order = Number(order)

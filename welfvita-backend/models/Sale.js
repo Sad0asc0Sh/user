@@ -36,6 +36,11 @@ const saleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    badgeTheme: {
+      type: String,
+      enum: ['green-orange', 'gold-red', 'red-purple'],
+      default: 'green-orange',
+    },
   },
   { timestamps: true },
 )

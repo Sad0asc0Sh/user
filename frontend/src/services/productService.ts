@@ -32,6 +32,9 @@ export interface Product {
   countInStock: number;
   colors?: ProductColor[]; // Optional color variants
   specs?: ProductSpec[]; // Technical specifications
+  campaignLabel?: string; // Active campaign name (time-limited discount)
+  campaignTheme?: string; // Badge color theme
+  compareAtPrice?: number; // Original price for comparison
 
   // Time-based promotion fields
   isFlashDeal?: boolean;
@@ -61,6 +64,9 @@ interface BackendProduct {
   discount?: number;
   colors?: ProductColor[];
   specs?: ProductSpec[];
+  campaignLabel?: string;
+  campaignTheme?: string;
+  compareAtPrice?: number;
 
   // Time-based promotion fields (matching backend model)
   isFlashDeal?: boolean;
@@ -129,7 +135,8 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
 
     // Price calculations
     price: backendProduct.price,
-    oldPrice: oldPrice,
+    oldPrice: backendProduct.compareAtPrice || oldPrice,
+    compareAtPrice: backendProduct.compareAtPrice,
     discount: discount,
 
     // Images
@@ -155,6 +162,10 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
 
     // Specifications (optional)
     specs: backendProduct.specs,
+
+    // Campaign label (time-limited discount)
+    campaignLabel: backendProduct.campaignLabel,
+    campaignTheme: backendProduct.campaignTheme,
 
     // Time-based promotions
     isFlashDeal: backendProduct.isFlashDeal,

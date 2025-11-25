@@ -51,6 +51,17 @@ export default function ProductRail({ title, products }: ProductRailProps) {
                     className={`object-cover group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? "grayscale opacity-60" : ""}`}
                   />
 
+                  {product.campaignLabel && (
+                    <div className="absolute top-2 left-2 z-20">
+                      <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
+                          product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                            'bg-gradient-to-r from-lime-500 to-orange-400'
+                        }`}>
+                        {product.campaignLabel}
+                      </span>
+                    </div>
+                  )}
+
                   {/* OUT OF STOCK OVERLAY */}
                   {product.countInStock === 0 && (
                     <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
@@ -70,9 +81,8 @@ export default function ProductRail({ title, products }: ProductRailProps) {
 
                 {/* Title */}
                 <h3
-                  className={`text-[11px] font-bold leading-5 line-clamp-2 mb-2 min-h-[40px] ${
-                    product.countInStock === 0 ? "text-gray-400" : "text-gray-700"
-                  }`}
+                  className={`text-[11px] font-bold leading-5 line-clamp-2 mb-2 min-h-[40px] ${product.countInStock === 0 ? "text-gray-400" : "text-gray-700"
+                    }`}
                 >
                   {product.name}
                 </h3>
@@ -83,7 +93,7 @@ export default function ProductRail({ title, products }: ProductRailProps) {
                   <div className="flex items-center justify-between h-5">
                     {product.countInStock > 0 && product.discount > 0 ? (
                       <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
-                        {(product.price * 1.1).toLocaleString("fa-IR")}
+                        {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
                       </span>
                     ) : (
                       <div className="h-5" />
@@ -92,17 +102,15 @@ export default function ProductRail({ title, products }: ProductRailProps) {
 
                   {/* Row 2: Current Price */}
                   <div
-                    className={`flex items-center justify-end gap-1 ${
-                      product.countInStock === 0 ? "text-gray-400" : "text-gray-800"
-                    }`}
+                    className={`flex items-center justify-end gap-1 ${product.countInStock === 0 ? "text-gray-400" : "text-gray-800"
+                      }`}
                   >
                     <span className="text-[15px] font-black tracking-tight">
                       {product.price.toLocaleString("fa-IR")}
                     </span>
                     <span
-                      className={`text-[10px] font-medium ${
-                        product.countInStock === 0 ? "text-gray-400" : "text-gray-600"
-                      }`}
+                      className={`text-[10px] font-medium ${product.countInStock === 0 ? "text-gray-400" : "text-gray-600"
+                        }`}
                     >
                       تومان
                     </span>

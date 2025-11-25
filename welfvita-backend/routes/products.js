@@ -7,6 +7,7 @@ const multer = require('multer')
 const path = require('path')
 
 const Product = require('../models/Product')
+const Sale = require('../models/Sale')
 const Category = require('../models/Category')
 const Brand = require('../models/Brand')
 const { protect, authorize } = require('../middleware/auth')
@@ -205,14 +206,57 @@ router.get('/', async (req, res) => {
       query.select(fields)
     }
 
-    const [items, total] = await Promise.all([
+    const now = new Date()
+    const [items, total, activeSales] = await Promise.all([
       query.lean(),
       Product.countDocuments(mongoFilter),
+      Sale.find({
+        isActive: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+      })
+        .select('name products discountPercentage badgeTheme')
+        .lean(),
     ])
+
+    // Build a quick lookup map of productId -> campaign name
+    const campaignMap = new Map()
+    activeSales.forEach((sale) => {
+      ; (sale.products || []).forEach((pid) => {
+        const key = pid.toString()
+        if (!campaignMap.has(key)) {
+          campaignMap.set(key, { name: sale.name, discount: sale.discountPercentage, theme: sale.badgeTheme })
+        }
+      })
+    })
+
+    const itemsWithCampaign = items.map((item) => {
+      const productId = item._id ? item._id.toString() : null
+      const campaignInfo = productId ? campaignMap.get(productId) : undefined
+
+      const newItem = { ...item }
+
+      if (campaignInfo) {
+        newItem.campaignLabel = campaignInfo.name
+        newItem.campaignTheme = campaignInfo.theme || 'green-orange'
+        if (campaignInfo.discount > 0) {
+          newItem.discount = campaignInfo.discount
+          newItem.isSpecialOffer = true
+
+          // Calculate final price
+          const originalPrice = newItem.price
+          const discountAmount = (originalPrice * campaignInfo.discount) / 100
+          newItem.price = originalPrice - discountAmount
+          newItem.compareAtPrice = originalPrice
+        }
+      }
+
+      return newItem
+    })
 
     res.json({
       success: true,
-      data: items,
+      data: itemsWithCampaign,
       pagination: {
         currentPage: page,
         itemsPerPage: limit,
@@ -243,9 +287,35 @@ router.get('/:id', async (req, res) => {
       })
     }
 
+    const now = new Date()
+    const activeSale = await Sale.findOne({
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+      products: product._id,
+    })
+      .select('name discountPercentage badgeTheme')
+      .lean()
+
+    const productObj = product.toObject()
+    if (activeSale) {
+      productObj.campaignLabel = activeSale.name
+      productObj.campaignTheme = activeSale.badgeTheme || 'green-orange'
+      if (activeSale.discountPercentage > 0) {
+        productObj.discount = activeSale.discountPercentage
+        productObj.isSpecialOffer = true
+
+        // Calculate final price
+        const originalPrice = productObj.price
+        const discountAmount = (originalPrice * activeSale.discountPercentage) / 100
+        productObj.price = originalPrice - discountAmount
+        productObj.compareAtPrice = originalPrice
+      }
+    }
+
     res.json({
       success: true,
-      data: product,
+      data: productObj,
     })
   } catch (error) {
     console.error('Error fetching product by id:', error)

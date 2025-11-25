@@ -19,6 +19,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   InboxOutlined,
+  StarFilled,
 } from '@ant-design/icons'
 import { useCategoryStore } from '../../stores'
 import api from '../../api'
@@ -67,9 +68,8 @@ function CategoriesPage() {
       if (values.description) {
         formData.append('description', values.description)
       }
-      if (values.isFeatured) {
-        formData.append('isFeatured', values.isFeatured)
-      }
+      formData.append('isFeatured', values.isFeatured || false)
+      formData.append('isPopular', values.isPopular || false)
 
       const hadIconBefore = Boolean(editingCategory?.iconUrl)
       const hadImageBefore = Boolean(editingCategory?.imageUrl)
@@ -140,25 +140,26 @@ function CategoriesPage() {
       parent: node.parent || null,
       description: node.description || '',
       isFeatured: node.isFeatured || false,
+      isPopular: node.isPopular || false,
       icon: node.iconUrl
         ? [
-            {
-              uid: '-1',
-              name: 'icon',
-              status: 'done',
-              url: node.iconUrl,
-            },
-          ]
+          {
+            uid: '-1',
+            name: 'icon',
+            status: 'done',
+            url: node.iconUrl,
+          },
+        ]
         : [],
       image: node.imageUrl
         ? [
-            {
-              uid: '-1',
-              name: 'image',
-              status: 'done',
-              url: node.imageUrl,
-            },
-          ]
+          {
+            uid: '-1',
+            name: 'image',
+            status: 'done',
+            url: node.imageUrl,
+          },
+        ]
         : [],
     })
     setModalVisible(true)
@@ -226,6 +227,7 @@ function CategoriesPage() {
               />
             )}
             <span>{item.title}</span>
+            {item.isPopular && <StarFilled style={{ color: '#f59e0b', fontSize: 14 }} />}
           </span>
           <Space size="small">
             <Button
@@ -421,7 +423,12 @@ function CategoriesPage() {
 
           {/* 6. Featured */}
           <Form.Item name="isFeatured" valuePropName="checked">
-            <Checkbox>نمایش به‌عنوان دسته‌بندی ویژه (Featured)</Checkbox>
+            <Checkbox>نمایش در ویژه‌ها (بالای صفحه - دایره‌ای)</Checkbox>
+          </Form.Item>
+
+          {/* 7. Popular */}
+          <Form.Item name="isPopular" valuePropName="checked">
+            <Checkbox>نمایش در محبوب‌ها (پایین - کارتی)</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

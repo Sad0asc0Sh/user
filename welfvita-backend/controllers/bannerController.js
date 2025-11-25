@@ -19,7 +19,7 @@ exports.getBanners = async (req, res) => {
       filter.isActive = false
     }
 
-    const sort = req.query.sort || '-createdAt'
+    const sort = req.query.sort || 'sortOrder -createdAt'
 
     const query = Banner.find(filter).sort(sort).skip(skip).limit(limit)
 
@@ -48,7 +48,7 @@ exports.getBanners = async (req, res) => {
 // ایجاد بنر
 exports.createBanner = async (req, res) => {
   try {
-    const { title, link, position, isActive, image } = req.body || {}
+    const { title, link, position, isActive, image, sortOrder } = req.body || {}
 
     if (!title) {
       return res.status(400).json({
@@ -63,6 +63,7 @@ exports.createBanner = async (req, res) => {
       position: position || 'homepage-slider',
       isActive: isActive !== undefined ? isActive : true,
       image: image || null,
+      sortOrder: sortOrder || 0,
     })
 
     res.status(201).json({
@@ -98,6 +99,7 @@ exports.updateBanner = async (req, res) => {
     if (updates.position !== undefined) banner.position = updates.position
     if (updates.isActive !== undefined) banner.isActive = updates.isActive
     if (updates.image !== undefined) banner.image = updates.image || null
+    if (updates.sortOrder !== undefined) banner.sortOrder = updates.sortOrder
 
     const saved = await banner.save()
 

@@ -14,6 +14,7 @@ import {
   message,
   DatePicker,
   Switch,
+  Radio,
 } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -100,6 +101,7 @@ function SalesPage() {
       dateRange: [dayjs(sale.startDate), dayjs(sale.endDate)],
       products: sale.products?.map((p) => (typeof p === 'object' ? p._id : p)),
       isActive: sale.isActive,
+      badgeTheme: sale.badgeTheme || 'green-orange',
     })
     setModalOpen(true)
   }
@@ -115,6 +117,7 @@ function SalesPage() {
         endDate: values.dateRange[1].toISOString(),
         products: values.products || [],
         isActive: values.isActive,
+        badgeTheme: values.badgeTheme,
       }
 
       setSaving(true)
@@ -344,6 +347,20 @@ function SalesPage() {
                 sku: p.sku || '',
               }))}
             />
+          </Form.Item>
+
+          <Form.Item name="badgeTheme" label="رنگ نشان (Badge Color)">
+            <Radio.Group>
+              <Radio value="green-orange">
+                <span style={{ color: '#16a34a' }}>●</span> پیش‌فرض (بهاره)
+              </Radio>
+              <Radio value="gold-red">
+                <span style={{ color: '#ca8a04' }}>●</span> طلایی (نوروز/لوکس)
+              </Radio>
+              <Radio value="red-purple">
+                <span style={{ color: '#dc2626' }}>●</span> آتشین (حراج ویژه)
+              </Radio>
+            </Radio.Group>
           </Form.Item>
 
           <Form.Item name="isActive" label="وضعیت" valuePropName="checked">

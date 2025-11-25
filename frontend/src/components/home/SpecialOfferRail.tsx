@@ -65,7 +65,7 @@ export default function SpecialOfferRail() {
               <Percent size={12} className="text-white fill-white" />
             </div>
             <h2 className="text-base font-bold text-yellow-400">
-          پیشنهاد‌شگفت‌انگیز
+              پیشنهاد‌شگفت‌انگیز
             </h2>
           </div>
 
@@ -118,6 +118,17 @@ export default function SpecialOfferRail() {
                         className={`object-cover group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-60' : ''}`}
                       />
 
+                      {product.campaignLabel && (
+                        <div className="absolute top-2 left-2 z-20">
+                          <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
+                              product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                'bg-gradient-to-r from-lime-500 to-orange-400'
+                            }`}>
+                            {product.campaignLabel}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Out of Stock Overlay */}
                       {product.countInStock === 0 && (
                         <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center">
@@ -142,7 +153,7 @@ export default function SpecialOfferRail() {
                               {product.discount}٪
                             </div>
                             <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
-                              {(product.price * 1.1).toLocaleString("fa-IR")}
+                              {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
                             </span>
                           </>
                         ) : (
@@ -181,4 +192,3 @@ export default function SpecialOfferRail() {
     </div>
   );
 }
-

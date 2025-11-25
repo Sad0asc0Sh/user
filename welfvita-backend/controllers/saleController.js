@@ -85,7 +85,7 @@ exports.getSaleById = async (req, res) => {
  */
 exports.createSale = async (req, res) => {
   try {
-    const { name, discountPercentage, startDate, endDate, products, isActive } = req.body
+    const { name, discountPercentage, startDate, endDate, products, isActive, badgeTheme } = req.body
 
     // Validation
     if (!name || !discountPercentage || !startDate || !endDate) {
@@ -113,6 +113,7 @@ exports.createSale = async (req, res) => {
       endDate: end,
       products: products || [],
       isActive: isActive !== undefined ? isActive : true,
+      badgeTheme: badgeTheme || 'green-orange',
     }
 
     const sale = await Sale.create(saleData)
@@ -140,7 +141,7 @@ exports.createSale = async (req, res) => {
 exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params
-    const { name, discountPercentage, startDate, endDate, products, isActive } = req.body
+    const { name, discountPercentage, startDate, endDate, products, isActive, badgeTheme } = req.body
 
     const sale = await Sale.findById(id)
 
@@ -158,6 +159,7 @@ exports.updateSale = async (req, res) => {
     if (endDate !== undefined) sale.endDate = new Date(endDate)
     if (products !== undefined) sale.products = products
     if (isActive !== undefined) sale.isActive = isActive
+    if (badgeTheme !== undefined) sale.badgeTheme = badgeTheme
 
     // بررسی تاریخ‌ها
     if (sale.endDate <= sale.startDate) {

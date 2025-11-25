@@ -37,6 +37,11 @@ const CategorySchema = new mongoose.Schema(
       default: false,
     },
 
+    isPopular: {
+      type: Boolean,
+      default: false,
+    },
+
     slug: {
       type: String,
       unique: true,

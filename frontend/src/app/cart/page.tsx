@@ -1,36 +1,44 @@
 "use client";
-import { useState } from "react";
-import { ChevronLeft, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ShoppingBag, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { INITIAL_CART } from "@/lib/mock/cartData";
 import CartItem from "@/components/cart/CartItem";
 import CartSummary from "@/components/cart/CartSummary";
+import { useCart } from "@/hooks/useCart";
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState(INITIAL_CART);
+    const { cartItems, loading, updateQuantity, removeFromCart, totalPrice, isEmpty } = useCart();
 
     // Calculations
-    const totalPrice = cartItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
     const shipping = 50000; // Mock shipping
     const finalPrice = totalPrice + shipping;
 
-    const handleIncrease = (id: number) => {
-        setCartItems(prev => prev.map(item =>
-            item.id === id ? { ...item, qty: item.qty + 1 } : item
-        ));
-    };
-
-    const handleDecrease = (id: number, qty: number) => {
-        if (qty === 1) {
-            setCartItems(prev => prev.filter(item => item.id !== id));
-        } else {
-            setCartItems(prev => prev.map(item =>
-                item.id === id ? { ...item, qty: item.qty - 1 } : item
-            ));
+    const handleIncrease = async (id: string) => {
+        const item = cartItems.find(item => item.id === id);
+        if (item) {
+            await updateQuantity(id, item.qty + 1);
         }
     };
 
-    if (cartItems.length === 0) return <EmptyCart />;
+    const handleDecrease = async (id: string, qty: number) => {
+        if (qty === 1) {
+            await removeFromCart(id);
+        } else {
+            await updateQuantity(id, qty - 1);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="animate-spin text-vita-500" size={48} />
+                    <span className="text-sm text-gray-500">در حال بارگذاری سبد خرید...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (isEmpty) return <EmptyCart />;
 
     return (
         <div className="flex flex-col h-full bg-gray-50">

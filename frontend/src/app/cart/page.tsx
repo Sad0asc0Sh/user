@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ShoppingBag, Loader2 } from "lucide-react";
 import Link from "next/link";
 import CartItem from "@/components/cart/CartItem";
@@ -6,27 +7,61 @@ import CartSummary from "@/components/cart/CartSummary";
 import { useCart } from "@/hooks/useCart";
 
 export default function CartPage() {
+    const router = useRouter();
     const { cartItems, loading, updateQuantity, removeFromCart, totalPrice, isEmpty } = useCart();
 
     // Calculations
     const shipping = 50000; // Mock shipping
     const finalPrice = totalPrice + shipping;
 
-    const handleIncrease = async (id: string) => {
-        const item = cartItems.find(item => item.id === id);
+    const handleIncrease = async (id: string, variantOptions?: Array<{ name: string; value: string }>) => {
+        const item = cartItems.find(item => {
+            if (item.id !== id) return false;
+
+            // Match by variantOptions
+            const itemVariants = item.variantOptions || [];
+            const targetVariants = variantOptions || [];
+
+            if (itemVariants.length !== targetVariants.length) return false;
+
+            return itemVariants.every((v1) =>
+                targetVariants.some((v2) => v1.name === v2.name && v1.value === v2.value)
+            );
+        });
+
         if (item) {
-            await updateQuantity(id, item.qty + 1);
+            await updateQuantity(id, item.qty + 1, variantOptions);
         }
     };
 
-    const handleDecrease = async (id: string, qty: number) => {
+    const handleDecrease = async (id: string, qty: number, variantOptions?: Array<{ name: string; value: string }>) => {
         if (qty === 1) {
-            await removeFromCart(id);
+            await removeFromCart(id, variantOptions);
         } else {
-            await updateQuantity(id, qty - 1);
+            await updateQuantity(id, qty - 1, variantOptions);
         }
     };
 
+    /**
+     * Instant Auth Check Before Navigation
+     * Prevents flash of unauthenticated content on checkout page
+     */
+    const handleCheckoutProcess = () => {
+        // Check for token in localStorage
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            // Not logged in - redirect directly to login
+            console.log("[CART] No token found, redirecting to login");
+            router.push("/login");
+        } else {
+            // Logged in - proceed to checkout
+            console.log("[CART] Token found, proceeding to checkout");
+            router.push("/checkout");
+        }
+    };
+
+    // Show loading spinner while cart data is being fetched
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -38,7 +73,8 @@ export default function CartPage() {
         );
     }
 
-    if (isEmpty) return <EmptyCart />;
+    // Only show empty cart after loading is complete
+    if (!loading && isEmpty) return <EmptyCart />;
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
@@ -51,14 +87,25 @@ export default function CartPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 pb-40 space-y-4 no-scrollbar">
                 {/* Items */}
-                {cartItems.map(item => (
+                {cartItems.map((item, index) => {
+                    // Create unique key using product ID (string), color, and variants
+                    // Note: Items are already deduplicated in useCart hook
+                    const productId = String(item.id ?? index);
+                    const variantKey = item.variantOptions
+                        ?.map((v) => `${v.name}:${v.value}`)
+                        .sort() // Sort to ensure consistent key generation
+                        .join("|") || "no-variant";
+                    const itemKey = `${productId}-${item.color || "no-color"}-${variantKey}`;
+
+                    return (
                     <CartItem
-                        key={item.id}
+                        key={itemKey}
                         item={item}
-                        onIncrease={() => handleIncrease(item.id)}
-                        onDecrease={() => handleDecrease(item.id, item.qty)}
+                        onIncrease={() => handleIncrease(item.id, item.variantOptions)}
+                        onDecrease={() => handleDecrease(item.id, item.qty, item.variantOptions)}
                     />
-                ))}
+                    );
+                })}
 
                 {/* Summary Card */}
                 <CartSummary totalPrice={totalPrice} shipping={shipping} finalPrice={finalPrice} />
@@ -77,7 +124,10 @@ export default function CartPage() {
                 </div>
 
                 {/* Checkout Button */}
-                <button className="flex-1 bg-gradient-to-r from-vita-500 to-vita-600 text-white font-bold py-3 rounded-xl shadow-md shadow-vita-200 active:scale-95 transition-transform">
+                <button
+                    onClick={handleCheckoutProcess}
+                    className="flex-1 bg-gradient-to-r from-vita-500 to-vita-600 text-white font-bold py-3 rounded-xl shadow-md shadow-vita-200 active:scale-95 transition-transform"
+                >
                     ادامه فرآیند خرید
                 </button>
             </div>

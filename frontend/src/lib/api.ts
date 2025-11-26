@@ -15,11 +15,12 @@ const api = axios.create({
 // Request interceptor - Add auth token if available
 api.interceptors.request.use(
   (config) => {
-    // You can add auth token here later
-    // const token = localStorage.getItem("token");
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
     return config;
   },
   (error) => {
@@ -41,6 +42,14 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           console.error("Unauthorized - Please login");
+          // Optional: redirect to login page on client
+          if (typeof window !== "undefined") {
+            // Avoid redirect loops on auth pages
+            const isAuthPage = window.location.pathname.startsWith("/login");
+            if (!isAuthPage) {
+              window.location.href = "/login";
+            }
+          }
           // Redirect to login page if needed
           break;
         case 404:

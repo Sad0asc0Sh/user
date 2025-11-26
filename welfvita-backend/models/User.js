@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const bcrypt = require('bcryptjs')
 
 /**
  * Customer User Model
@@ -6,11 +7,11 @@ const mongoose = require('mongoose')
  */
 const userSchema = new mongoose.Schema(
   {
-    // Mobile number (primary identifier for OTP login)
+    // Mobile number (primary identifier for OTP login, but optional for Google users)
     mobile: {
       type: String,
-      required: [true, 'شماره موبایل الزامی است'],
       unique: true,
+      sparse: true, // Allows null but must be unique if provided
       trim: true,
       match: [/^09\d{9}$/, 'شماره موبایل باید با 09 شروع شود و 11 رقم باشد'],
     },
@@ -22,12 +23,43 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Username (for password-based login)
+    username: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null but must be unique if provided
+      trim: true,
+      lowercase: true,
+      minlength: [3, 'نام کاربری باید حداقل 3 کاراکتر باشد'],
+      match: [/^[a-z0-9_]+$/, 'نام کاربری فقط می‌تواند شامل حروف انگلیسی، اعداد و _ باشد'],
+    },
+
+    // Password (for hybrid authentication)
+    password: {
+      type: String,
+      select: false, // Don't include in queries by default
+      minlength: [6, 'رمز عبور باید حداقل 6 کاراکتر باشد'],
+    },
+
+    // Email (for Google login)
     email: {
       type: String,
+      unique: true,
       sparse: true, // Allows null but must be unique if provided
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'فرمت ایمیل نامعتبر است'],
+    },
+
+    // Google authentication fields
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null but must be unique if provided
+    },
+
+    avatar: {
+      type: String, // URL to user profile picture (from Google or uploaded)
     },
 
     // Wallet balance
@@ -37,10 +69,10 @@ const userSchema = new mongoose.Schema(
       min: [0, 'موجودی کیف پول نمی‌تواند منفی باشد'],
     },
 
-    // Role (always 'user' for customers)
+    // Role
     role: {
       type: String,
-      enum: ['user'],
+      enum: ['user', 'admin', 'manager', 'superadmin'],
       default: 'user',
     },
 
@@ -56,9 +88,12 @@ const userSchema = new mongoose.Schema(
         title: String,
         fullName: String,
         mobile: String,
+        nationalCode: String, // NEW
         province: String,
         city: String,
         address: String,
+        plaque: String, // NEW
+        unit: String, // NEW
         postalCode: String,
         isDefault: {
           type: Boolean,
@@ -66,6 +101,23 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // Wishlist (array of product IDs)
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+      },
+    ],
+
+    // Password Reset Token (for forgot password feature)
+    resetPasswordToken: {
+      type: String,
+    },
+
+    resetPasswordExpire: {
+      type: Date,
+    },
 
     // Metadata
     lastLogin: {
@@ -87,16 +139,65 @@ const userSchema = new mongoose.Schema(
   }
 )
 
+// Hash password before saving
+userSchema.pre('save', async function (next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) {
+    return next()
+  }
+
+  // Don't hash if password is empty/null
+  if (!this.password) {
+    return next()
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10)
+    this.password = await bcrypt.hash(this.password, salt)
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Method to compare password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) {
+    return false
+  }
+  return await bcrypt.compare(candidatePassword, this.password)
+}
+
 // Update lastLogin on login
 userSchema.methods.updateLastLogin = function () {
   this.lastLogin = new Date()
   return this.save()
 }
 
+// Generate and hash password reset token
+userSchema.methods.getResetPasswordToken = function () {
+  const crypto = require('crypto')
+
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString('hex')
+
+  // Hash token and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex')
+
+  // Set expire time (10 minutes)
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000
+
+  return resetToken
+}
+
 // Convert to JSON (hide sensitive fields if needed)
 userSchema.set('toJSON', {
   transform: (doc, ret) => {
-    // Keep all fields for now
+    // Remove password from JSON output
+    delete ret.password
     return ret
   },
 })

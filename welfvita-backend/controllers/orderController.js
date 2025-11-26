@@ -1,4 +1,76 @@
 const Order = require('../models/Order')
+const Cart = require('../models/Cart')
+
+// ============================================
+// POST /api/orders - ایجاد سفارش جدید (Customer-Facing)
+// ============================================
+exports.createOrder = async (req, res) => {
+  try {
+    const {
+      orderItems,
+      shippingAddress,
+      paymentMethod,
+      itemsPrice,
+      shippingPrice,
+      taxPrice,
+      totalPrice,
+    } = req.body
+
+    const userId = req.user._id
+
+    // اعتبارسنجی
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'سبد خرید خالی است',
+      })
+    }
+
+    if (!shippingAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'آدرس ارسال الزامی است',
+      })
+    }
+
+    // ایجاد سفارش
+    const order = new Order({
+      user: userId,
+      orderItems,
+      shippingAddress,
+      paymentMethod: paymentMethod || 'online',
+      itemsPrice,
+      shippingPrice,
+      taxPrice: taxPrice || 0,
+      totalPrice,
+      orderStatus: paymentMethod === 'cod' ? 'Processing' : 'Pending',
+    })
+
+    const createdOrder = await order.save()
+
+    // پاک کردن سبد خرید کاربر بعد از ثبت سفارش
+    const cart = await Cart.findOne({ user: userId, status: 'active' })
+    if (cart) {
+      cart.items = []
+      cart.totalPrice = 0
+      cart.status = 'converted' // تبدیل به سفارش
+      await cart.save()
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'سفارش با موفقیت ثبت شد',
+      data: createdOrder,
+    })
+  } catch (error) {
+    console.error('Error creating order:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در ثبت سفارش',
+      error: error.message,
+    })
+  }
+}
 
 // ============================================
 // GET /api/orders - لیست سفارش‌ها با فیلتر و صفحه‌بندی
@@ -59,6 +131,7 @@ exports.getAllOrders = async (req, res) => {
 
 // ============================================
 // GET /api/orders/:id - جزئیات یک سفارش
+// مشتری فقط می‌تواند سفارش خود را ببیند، ادمین همه را می‌بیند
 // ============================================
 exports.getOrderById = async (req, res) => {
   try {
@@ -71,6 +144,17 @@ exports.getOrderById = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'سفارش مورد نظر یافت نشد',
+      })
+    }
+
+    // بررسی دسترسی: فقط صاحب سفارش یا ادمین
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'manager' || req.user.role === 'superadmin'
+    const isOwner = order.user._id.toString() === req.user._id.toString()
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'شما اجازه دسترسی به این سفارش را ندارید',
       })
     }
 
@@ -167,3 +251,25 @@ exports.updateOrderStatus = async (req, res) => {
   }
 }
 
+// ============================================
+// GET /api/orders/my-orders - دریافت سفارشات کاربر جاری
+// ============================================
+exports.getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean()
+
+    res.json({
+      success: true,
+      data: orders,
+    })
+  } catch (error) {
+    console.error('Error fetching my orders:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در دریافت سفارشات',
+      error: error.message,
+    })
+  }
+}

@@ -65,12 +65,12 @@ interface AddItemRequest {
  *
  * Server-side cart persistence for authenticated users.
  *
- * Backend Endpoints:
- * - GET /api/cart - Get user's cart
- * - POST /api/cart/sync - Sync local cart with server
- * - POST /api/cart/item - Add or update cart item
- * - DELETE /api/cart/item/:productId - Remove item from cart
- * - DELETE /api/cart - Clear entire cart
+ * Backend Endpoints (mounted at /api/carts):
+ * - GET /api/carts/cart - Get user's cart
+ * - POST /api/carts/cart/sync - Sync local cart with server
+ * - POST /api/carts/cart/item - Add or update cart item
+ * - DELETE /api/carts/cart/item/:productId - Remove item from cart
+ * - DELETE /api/carts/cart - Clear entire cart
  *
  * Status: ✅ Connected to Real Backend API
  */
@@ -85,7 +85,7 @@ export const cartService = {
     try {
       console.log("[CART] Fetching user cart");
 
-      const response = await api.get("/cart");
+      const response = await api.get("/carts/cart");
 
       return response.data;
     } catch (error: any) {
@@ -107,7 +107,7 @@ export const cartService = {
     try {
       console.log(`[CART] Syncing ${items.length} items with server`);
 
-      const response = await api.post("/cart/sync", { items });
+      const response = await api.post("/carts/cart/sync", { items });
 
       return response.data;
     } catch (error: any) {
@@ -135,7 +135,7 @@ export const cartService = {
     try {
       console.log(`[CART] Adding item ${product} (qty: ${quantity})`);
 
-      const response = await api.post("/cart/item", {
+      const response = await api.post("/carts/cart/item", {
         product,
         quantity,
         variantOptions,
@@ -156,18 +156,21 @@ export const cartService = {
    *
    * @param product - Product ID
    * @param quantity - New quantity
+   * @param variantOptions - Optional variant options
    * @returns Promise with updated cart items and total price
    */
   updateItem: async (
     product: string,
-    quantity: number
+    quantity: number,
+    variantOptions?: AddItemRequest["variantOptions"]
   ): Promise<CartResponse> => {
     try {
       console.log(`[CART] Updating item ${product} to qty: ${quantity}`);
 
-      const response = await api.post("/cart/item", {
+      const response = await api.post("/carts/cart/item", {
         product,
         quantity,
+        variantOptions,
       });
 
       return response.data;
@@ -184,13 +187,24 @@ export const cartService = {
    * Removes a specific item from the cart
    *
    * @param productId - Product ID to remove
+   * @param variantOptions - Optional variant options to identify exact item
    * @returns Promise with updated cart items and total price
    */
-  removeItem: async (productId: string): Promise<CartResponse> => {
+  removeItem: async (
+    productId: string,
+    variantOptions?: AddItemRequest["variantOptions"]
+  ): Promise<CartResponse> => {
     try {
       console.log(`[CART] Removing item ${productId}`);
 
-      const response = await api.delete(`/cart/item/${productId}`);
+      // Include variantOptions in query params if provided
+      const params = variantOptions
+        ? { variantOptions: JSON.stringify(variantOptions) }
+        : {};
+
+      const response = await api.delete(`/carts/cart/item/${productId}`, {
+        params,
+      });
 
       return response.data;
     } catch (error: any) {
@@ -211,7 +225,7 @@ export const cartService = {
     try {
       console.log("[CART] Clearing cart");
 
-      const response = await api.delete("/cart");
+      const response = await api.delete("/carts/cart");
 
       return response.data;
     } catch (error: any) {

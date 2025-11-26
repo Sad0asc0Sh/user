@@ -15,10 +15,13 @@ const allowedOriginsEnv = process.env.CLIENT_URL || process.env.FRONTEND_URL
 const allowedOrigins = allowedOriginsEnv
   ? allowedOriginsEnv.split(',').map(origin => origin.trim()).filter(Boolean)
   : [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ]
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+  ]
 
 app.use(cors({
   origin: allowedOrigins,
@@ -103,6 +106,14 @@ app.use('/api/rma', rmaRoutes)
 // Cart Routes
 const cartRoutes = require('./routes/carts')
 app.use('/api/carts', cartRoutes)
+
+// Wishlist Routes
+const wishlistRoutes = require('./routes/wishlist')
+app.use('/api/wishlist', wishlistRoutes)
+
+// Address Routes
+const addressRoutes = require('./routes/addresses')
+app.use('/api/addresses', addressRoutes)
 
 // User Routes
 const userRoutes = require('./routes/users')

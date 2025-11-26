@@ -38,6 +38,7 @@ function MainLayout({ children }) {
   const isManagerOrSuperAdmin = role === 'manager' || role === 'superadmin'
   const isSuperAdmin = role === 'superadmin'
 
+  // Build menu items based on user role
   const menuItems = [
     {
       key: '/',
@@ -168,16 +169,26 @@ function MainLayout({ children }) {
         },
       ],
     },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: <Link to="/settings">تنظیمات</Link>,
-    },
-    {
-      key: '/admins',
-      icon: <TeamOutlined />,
-      label: <Link to="/admins">مدیریت ادمین‌ها</Link>,
-    },
+    // Settings - Only for manager and superadmin
+    ...(isManagerOrSuperAdmin
+      ? [
+          {
+            key: '/settings',
+            icon: <SettingOutlined />,
+            label: <Link to="/settings">تنظیمات</Link>,
+          },
+        ]
+      : []),
+    // Admins Management - Only for superadmin
+    ...(isSuperAdmin
+      ? [
+          {
+            key: '/admins',
+            icon: <TeamOutlined />,
+            label: <Link to="/admins">مدیریت ادمین‌ها</Link>,
+          },
+        ]
+      : []),
   ]
 
   const formatRelativeTime = (timestamp) => {
@@ -272,11 +283,16 @@ function MainLayout({ children }) {
         icon: <UserOutlined />,
         label: 'پروفایل کاربر',
       },
-      {
-        key: 'settings',
-        icon: <SettingOutlined />,
-        label: <Link to="/settings">تنظیمات</Link>,
-      },
+      // Settings - Only for manager and superadmin
+      ...(isManagerOrSuperAdmin
+        ? [
+            {
+              key: 'settings',
+              icon: <SettingOutlined />,
+              label: <Link to="/settings">تنظیمات</Link>,
+            },
+          ]
+        : []),
       { type: 'divider' },
       {
         key: 'logout',

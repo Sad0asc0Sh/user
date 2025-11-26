@@ -11,6 +11,14 @@ export interface User {
   wallet?: number;
   role?: string;
   isActive: boolean;
+  addresses?: any[];
+  avatar?: string;
+  orderStats?: {
+    processing: number;
+    delivered: number;
+    returned: number;
+    cancelled: number;
+  };
 }
 
 /**
@@ -22,9 +30,11 @@ interface AuthResponse {
   data?: {
     user: any;
     token: string;
+    isProfileComplete?: boolean;
   };
   token?: string;
   accessToken?: string;
+  isProfileComplete?: boolean;
 }
 
 /**
@@ -120,6 +130,17 @@ export const authService = {
 
       const response = await api.get("/auth/profile");
       const userData = response.data.data || response.data;
+      const rawStats = userData.orderStats || {};
+      const mappedOrderStats = {
+        processing: Number(rawStats.processing) || 0,
+        delivered: Number(rawStats.delivered) || 0,
+        returned: Number(rawStats.returned) || 0,
+        cancelled: Number(
+          rawStats.cancelled !== undefined
+            ? rawStats.cancelled
+            : rawStats.canceled
+        ) || 0,
+      };
 
       // Map backend user to frontend User interface
       return {
@@ -127,9 +148,12 @@ export const authService = {
         name: userData.name,
         mobile: userData.mobile,
         email: userData.email,
-        wallet: userData.wallet || 0,
+        wallet: userData.wallet ?? userData.walletBalance ?? 0,
         role: userData.role || "user",
         isActive: userData.isActive !== false,
+        addresses: userData.addresses || [],
+        avatar: userData.avatar,
+        orderStats: mappedOrderStats,
       };
     } catch (error: any) {
       console.error("Error fetching profile:", error);
@@ -172,14 +196,28 @@ export const authService = {
 
     try {
       const userData = JSON.parse(userStr);
+      const rawStats = userData.orderStats || {};
+      const mappedOrderStats = {
+        processing: Number(rawStats.processing) || 0,
+        delivered: Number(rawStats.delivered) || 0,
+        returned: Number(rawStats.returned) || 0,
+        cancelled: Number(
+          rawStats.cancelled !== undefined
+            ? rawStats.cancelled
+            : rawStats.canceled
+        ) || 0,
+      };
       return {
         id: userData._id || userData.id,
         name: userData.name,
         mobile: userData.mobile,
         email: userData.email,
-        wallet: userData.wallet || 0,
+        wallet: userData.wallet ?? userData.walletBalance ?? 0,
         role: userData.role || "user",
         isActive: userData.isActive !== false,
+        addresses: userData.addresses || [],
+        avatar: userData.avatar,
+        orderStats: mappedOrderStats,
       };
     } catch {
       return null;
@@ -201,6 +239,275 @@ export const authService = {
     // Redirect to home
     if (typeof window !== "undefined") {
       window.location.href = "/";
+    }
+  },
+
+  /**
+   * Google Login
+   * Authenticates user with Google ID token
+   *
+   * @param token - Google ID token (credential)
+   * @returns Promise with user data and token
+   */
+  loginWithGoogle: async (token: string): Promise<AuthResponse> => {
+    try {
+      console.log("[AUTH] Logging in with Google");
+
+      const response = await api.post("/auth/google", { token });
+
+      if (response.data.success && response.data.data?.token) {
+        const appToken = response.data.data.token;
+        const user = response.data.data.user;
+
+        // Persist authentication
+        localStorage.setItem("token", appToken);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        // Set authorization header
+        api.defaults.headers.common["Authorization"] = `Bearer ${appToken}`;
+
+        console.log("[AUTH] Google login successful");
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error logging in with Google:", error);
+      throw new Error(
+        error.response?.data?.message || "خطا در ورود با گوگل"
+      );
+    }
+  },
+
+  /**
+   * Login with Password
+   * Authenticates user with username/mobile/email + password
+   *
+   * @param identifier - Username, mobile number, or email
+   * @param password - User password
+   * @returns Promise with user data and token
+   */
+  loginWithPassword: async (
+    identifier: string,
+    password: string
+  ): Promise<AuthResponse> => {
+    try {
+      console.log("[AUTH] Logging in with password");
+
+      const response = await api.post("/auth/login-password", {
+        identifier,
+        password,
+      });
+
+      if (response.data.success && response.data.data?.token) {
+        const token = response.data.data.token;
+        const user = response.data.data.user;
+
+        // Persist authentication
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        // Set authorization header
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+        console.log("[AUTH] Password login successful");
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error logging in with password:", error);
+      throw new Error(
+        error.response?.data?.message || "خطا در ورود با رمز عبور"
+      );
+    }
+  },
+
+  /**
+   * Complete Profile
+   * Sets password, username, and name for user after OTP/Google login
+   *
+   * @param data - Profile completion data
+   * @returns Promise with success status
+   */
+  completeProfile: async (data: {
+    name?: string;
+    username: string;
+    password: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    try {
+      console.log("[AUTH] Completing user profile");
+
+      const response = await api.put("/auth/complete-profile", data);
+
+      // Update user in localStorage
+      if (response.data.success && response.data.data?.user) {
+        const user = response.data.data.user;
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error completing profile:", error);
+      throw new Error(
+        error.response?.data?.message || "خطا در تکمیل پروفایل"
+      );
+    }
+  },
+
+  /**
+   * Update Profile (including password)
+   * @param data - { name, email, password }
+   */
+  updateProfile: async (data: { name?: string; email?: string; password?: string }): Promise<any> => {
+    try {
+      console.log("[AUTH] Updating profile");
+      const response = await api.put("/auth/me/update", data);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      throw new Error(error.response?.data?.message || "خطا در بروزرسانی پروفایل");
+    }
+  },
+
+  /**
+   * Update Avatar
+   * Uploads a new profile picture
+   * @param file - Image file
+   */
+  updateAvatar: async (file: File): Promise<{ success: boolean; data: User }> => {
+    try {
+      console.log("[AUTH] Updating avatar");
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await api.put("/auth/me/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating avatar:", error);
+      throw new Error(error.response?.data?.message || "خطا در آپلود تصویر پروفایل");
+    }
+  },
+
+  /**
+   * Forgot Password
+   * Sends password reset email to user
+   *
+   * @param email - User email address
+   * @returns Promise with success status
+   */
+  forgotPassword: async (email: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      console.log("[AUTH] Requesting password reset for:", email);
+
+      const response = await api.post("/auth/forgot-password", { email });
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error requesting password reset:", error);
+      throw new Error(
+        error.response?.data?.message || "خطا در ارسال ایمیل بازیابی"
+      );
+    }
+  },
+
+  /**
+   * Reset Password
+   * Resets user password using token from email
+   *
+   * @param token - Reset token from email link
+   * @param password - New password
+   * @returns Promise with success status
+   */
+  resetPassword: async (token: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      console.log("[AUTH] Resetting password with token");
+
+      const response = await api.put(`/auth/reset-password/${token}`, { password });
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      throw new Error(
+        error.response?.data?.message || "خطا در تغییر رمز عبور"
+      );
+    }
+  },
+
+  /**
+   * Add Address
+   * @param address - Address object
+   */
+  addAddress: async (address: any): Promise<{ success: boolean; data: any[] }> => {
+    try {
+      console.log("[AUTH] Adding address");
+      const response = await api.post("/auth/addresses", address);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error adding address:", error);
+      throw new Error(error.response?.data?.message || "خطا در ثبت آدرس");
+    }
+  },
+
+  /**
+   * Update Address
+   * @param addressId - Address ID
+   * @param address - Updated address object
+   */
+  updateAddress: async (addressId: string, address: any): Promise<{ success: boolean; data: any[] }> => {
+    try {
+      console.log("[AUTH] Updating address:", addressId);
+      const response = await api.put(`/auth/addresses/${addressId}`, address);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating address:", error);
+      throw new Error(error.response?.data?.message || "خطا در ویرایش آدرس");
+    }
+  },
+
+  /**
+   * Delete Address
+   * @param addressId - Address ID
+   */
+  deleteAddress: async (addressId: string): Promise<{ success: boolean; data: any[] }> => {
+    try {
+      console.log("[AUTH] Deleting address:", addressId);
+      const response = await api.delete(`/auth/addresses/${addressId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error deleting address:", error);
+      throw new Error(error.response?.data?.message || "خطا در حذف آدرس");
+    }
+  },
+
+  /**
+   * Get My Orders
+   */
+  getMyOrders: async (): Promise<{ success: boolean; data: any[] }> => {
+    try {
+      console.log("[AUTH] Fetching my orders");
+      const response = await api.get("/orders/my-orders");
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching my orders:", error);
+      throw new Error(error.response?.data?.message || "خطا در دریافت سفارشات");
+    }
+  },
+
+  /**
+   * Get Single Order
+   */
+  getOrder: async (id: string): Promise<{ success: boolean; data: any }> => {
+    try {
+      console.log("[AUTH] Fetching order:", id);
+      const response = await api.get(`/orders/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching order:", error);
+      throw new Error(error.response?.data?.message || "خطا در دریافت جزئیات سفارش");
     }
   },
 

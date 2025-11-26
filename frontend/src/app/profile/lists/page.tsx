@@ -1,0 +1,301 @@
+"use client";
+import { useState, useEffect } from "react";
+import { ArrowRight, Heart, Trash2, ShoppingCart, Loader2, Plus, Minus } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { wishlistService, WishlistItem } from "@/services/wishlistService";
+import { useCart } from "@/hooks/useCart";
+import { Product } from "@/services/productService";
+
+export default function ListsPage() {
+    const [items, setItems] = useState<WishlistItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+
+    const { addToCart, updateQuantity, removeFromCart, getItemQuantity, cartItems } = useCart();
+
+    // Fetch wishlist on mount
+    useEffect(() => {
+        loadWishlist();
+    }, []);
+
+    const loadWishlist = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await wishlistService.getWishlist();
+            setItems(data);
+        } catch (err: any) {
+            console.error("[WISHLIST PAGE] Error loading wishlist:", err);
+            setError(err.message || "خطا در بارگذاری لیست علاقه‌مندی‌ها");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /**
+     * Remove item from wishlist with optimistic UI update
+     */
+    const handleRemove = async (productId: string) => {
+        if (!confirm("آیا از حذف این محصول از لیست علاقه‌مندی‌ها اطمینان دارید؟")) {
+            return;
+        }
+
+        const oldItems = [...items];
+        setItems(items.filter((item) => item._id !== productId));
+        setRemovingIds(new Set(removingIds).add(productId));
+
+        try {
+            await wishlistService.removeFromWishlist(productId);
+        } catch (err: any) {
+            console.error("[WISHLIST PAGE] Error removing item:", err);
+            setItems(oldItems);
+            alert(err.message || "خطا در حذف محصول");
+        } finally {
+            setRemovingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(productId);
+                return next;
+            });
+        }
+    };
+
+    /**
+     * Convert WishlistItem to Product for useCart
+     */
+    const mapToProduct = (item: WishlistItem): Product => {
+        return {
+            id: item._id,
+            name: item.name,
+            title: item.name,
+            price: item.price,
+            discount: item.discount || 0,
+            image: item.images && item.images.length > 0 ? item.images[0].url : "/placeholder.jpg",
+            images: item.images ? item.images.map(img => img.url) : [],
+            category: item.category || "",
+            rating: item.rating || 0,
+            reviewCount: 0,
+            countInStock: item.countInStock || 0,
+        };
+    };
+
+    /**
+     * Handle Add/Increase
+     */
+    const handleIncrease = async (item: WishlistItem) => {
+        const qty = getItemQuantity(item._id);
+        if (qty === 0) {
+            await addToCart(mapToProduct(item), 1);
+        } else {
+            await updateQuantity(item._id, qty + 1);
+        }
+    };
+
+    /**
+     * Handle Decrease
+     */
+    const handleDecrease = async (item: WishlistItem) => {
+        const qty = getItemQuantity(item._id);
+        if (qty > 1) {
+            await updateQuantity(item._id, qty - 1);
+        } else {
+            await removeFromCart(item._id);
+        }
+    };
+
+    /**
+     * Calculate final price with discount
+     */
+    const getFinalPrice = (item: WishlistItem) => {
+        if (item.discount && item.discount > 0) {
+            return item.price - (item.price * item.discount) / 100;
+        }
+        return item.price;
+    };
+
+    /**
+     * Get first image URL or fallback
+     */
+    const getImageUrl = (item: WishlistItem) => {
+        if (item.images && item.images.length > 0) {
+            return item.images[0].url;
+        }
+        return "/images/placeholder-product.png";
+    };
+
+    // Loading State
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 pb-24">
+                <div className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-10">
+                    <Link href="/profile" className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors">
+                        <ArrowRight size={20} />
+                    </Link>
+                    <h1 className="font-bold text-lg text-gray-800">لیست علاقه‌مندی‌ها</h1>
+                </div>
+                <div className="p-4 space-y-3">
+                    {[1, 2, 3].map((key) => (
+                        <div key={key} className="bg-white p-3 rounded-2xl flex gap-3 shadow-sm animate-pulse">
+                            <div className="w-24 h-24 bg-gray-200 rounded-xl" />
+                            <div className="flex-1 space-y-2 py-1">
+                                <div className="h-3 bg-gray-200 rounded w-3/4" />
+                                <div className="h-3 bg-gray-200 rounded w-1/2" />
+                                <div className="h-8 bg-gray-200 rounded mt-2" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // Error State
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 pb-24">
+                <div className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-10">
+                    <Link href="/profile" className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors">
+                        <ArrowRight size={20} />
+                    </Link>
+                    <h1 className="font-bold text-lg text-gray-800">لیست علاقه‌مندی‌ها</h1>
+                </div>
+                <div className="text-center py-16 px-4">
+                    <p className="text-red-500 text-sm mb-4">{error}</p>
+                    <button onClick={loadWishlist} className="px-6 py-2 bg-vita-500 text-white rounded-lg text-sm hover:bg-vita-600 transition">
+                        تلاش مجدد
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 pb-24">
+            {/* Header */}
+            <div className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-10">
+                <Link href="/profile" className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors">
+                    <ArrowRight size={20} />
+                </Link>
+                <h1 className="font-bold text-lg text-gray-800">لیست علاقه‌مندی‌ها</h1>
+                {items.length > 0 && (
+                    <span className="mr-auto text-xs text-gray-400">
+                        {items.length} محصول
+                    </span>
+                )}
+            </div>
+
+            {/* Wishlist Items */}
+            <div className="p-4 space-y-3">
+                {items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Heart size={40} className="text-gray-300" strokeWidth={1.5} />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-gray-800 font-medium text-sm mb-1">لیست علاقه‌مندی‌های شما خالی است</p>
+                            <p className="text-gray-400 text-xs mb-6">محصولات مورد علاقه خود را با کلیک روی آیکون قلب ذخیره کنید</p>
+                            <Link href="/" className="inline-block px-6 py-2.5 bg-vita-500 text-white text-sm font-bold rounded-lg hover:bg-vita-600 transition-colors">
+                                مشاهده محصولات
+                            </Link>
+                        </div>
+                    </div>
+                ) : (
+                    items.map((product) => {
+                        const qty = getItemQuantity(product._id);
+                        const isOutOfStock = product.countInStock !== undefined && product.countInStock <= 0;
+
+                        return (
+                            <div key={product._id} className="bg-white p-3 rounded-2xl flex gap-3 shadow-sm border border-gray-50 hover:shadow-md transition-shadow">
+                                {/* Product Image */}
+                                <Link href={`/product/${product._id}`} className="relative w-24 h-24 bg-gray-100 rounded-xl overflow-hidden shrink-0">
+                                    <Image
+                                        src={getImageUrl(product)}
+                                        fill
+                                        className={`object-cover ${isOutOfStock ? "grayscale opacity-60" : ""}`}
+                                        alt={product.name}
+                                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                    />
+                                    {product.discount && product.discount > 0 && (
+                                        <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                            {product.discount}%
+                                        </div>
+                                    )}
+                                    {isOutOfStock && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                                            <span className="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-md">ناموجود</span>
+                                        </div>
+                                    )}
+                                </Link>
+
+                                {/* Product Info */}
+                                <div className="flex-1 flex flex-col justify-between py-1">
+                                    <Link href={`/product/${product._id}`} className="text-xs font-bold text-gray-800 leading-5 line-clamp-2 hover:text-vita-600 transition-colors">
+                                        {product.name}
+                                    </Link>
+
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-sm font-black text-gray-900">
+                                            {getFinalPrice(product).toLocaleString("fa-IR")}
+                                        </span>
+                                        <span className="text-[9px] text-gray-500">تومان</span>
+                                        {(product.discount || 0) > 0 && (
+                                            <span className="text-[10px] text-gray-400 line-through">
+                                                {product.price.toLocaleString("fa-IR")}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2 mt-2 h-9">
+                                        {qty > 0 ? (
+                                            // Stepper
+                                            <div className="flex-1 flex items-center justify-between bg-gray-50 rounded-lg border border-gray-100 px-1">
+                                                <button
+                                                    onClick={() => handleIncrease(product)}
+                                                    className="w-8 h-full flex items-center justify-center text-vita-600 hover:bg-vita-100 rounded-md transition"
+                                                >
+                                                    <Plus size={16} />
+                                                </button>
+                                                <span className="font-bold text-sm text-gray-800">{qty}</span>
+                                                <button
+                                                    onClick={() => handleDecrease(product)}
+                                                    className="w-8 h-full flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition"
+                                                >
+                                                    {qty === 1 ? <Trash2 size={16} /> : <Minus size={16} />}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            // Add to Cart Button
+                                            <button
+                                                onClick={() => handleIncrease(product)}
+                                                disabled={isOutOfStock}
+                                                className="flex-1 bg-vita-50 text-vita-600 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 hover:bg-vita-100 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                            >
+                                                <ShoppingCart size={14} />
+                                                {isOutOfStock ? "ناموجود" : "افزودن به سبد"}
+                                            </button>
+                                        )}
+
+                                        {/* Remove from Wishlist */}
+                                        <button
+                                            onClick={() => handleRemove(product._id)}
+                                            disabled={removingIds.has(product._id)}
+                                            className="w-9 h-full bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+                                        >
+                                            {removingIds.has(product._id) ? (
+                                                <Loader2 size={16} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={16} />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        </div>
+    );
+}

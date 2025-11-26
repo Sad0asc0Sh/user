@@ -4,12 +4,13 @@ import Image from "next/image";
 
 interface CartItemProps {
     item: {
-        id: number;
+        id: string;
         name: string;
         price: number;
         image: string;
-        color: string;
+        color?: string;
         qty: number;
+        discount?: number;
     };
     onIncrease: () => void;
     onDecrease: () => void;
@@ -33,15 +34,39 @@ export default function CartItem({ item, onIncrease, onDecrease }: CartItemProps
 
                 {/* Color/Variant */}
                 <div className="flex items-center gap-1 mt-1">
-                    <span className="w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: item.color }} />
-                    <span className="text-[10px] text-gray-500">رنگ انتخابی</span>
+                    <span
+                        className="w-3 h-3 rounded-full border border-gray-200"
+                        style={{ backgroundColor: item.color || "#e5e7eb" }}
+                    />
+                    <span className="text-[10px] text-gray-500">موجود در انبار</span>
                 </div>
 
                 {/* Price & Actions Row */}
                 <div className="flex items-end justify-between mt-2">
                     <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900">{item.price.toLocaleString("fa-IR")}</span>
-                        <span className="text-[9px] text-gray-400">تومان</span>
+                        {item.discount && item.discount > 0 ? (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-white bg-red-500 px-1.5 rounded-full font-bold">
+                                        {item.discount}%
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 line-through decoration-gray-400">
+                                        {item.price.toLocaleString("fa-IR")}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-sm font-black text-gray-900">
+                                        {Math.round(item.price * (1 - item.discount / 100)).toLocaleString("fa-IR")}
+                                    </span>
+                                    <span className="text-[9px] text-gray-400">تومان</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-1">
+                                <span className="text-sm font-black text-gray-900">{item.price.toLocaleString("fa-IR")}</span>
+                                <span className="text-[9px] text-gray-400">تومان</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Stepper */}

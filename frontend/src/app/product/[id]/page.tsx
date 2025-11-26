@@ -1,16 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Store, Info, AlertCircle, Loader2, Check, Minus, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Store, Info, AlertCircle, Loader2, Check, Minus, Plus, Trash2, X, ShoppingCart, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination } from "swiper/modules";
+import { Pagination, Zoom, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/zoom";
+import "swiper/css/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { productService, Product, ProductColor } from "@/services/productService";
 import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -22,9 +25,29 @@ export default function ProductDetailPage() {
     const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
     const [addingToCart, setAddingToCart] = useState(false);
     const [addedToCart, setAddedToCart] = useState(false);
+    const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+    const [initialSlide, setInitialSlide] = useState(0);
+    const [swiperInstance, setSwiperInstance] = useState<any>(null);
+    const [activeIndex, setActiveIndex] = useState(0);
 
-    const { addToCart, getItemQuantity, updateQuantity, removeFromCart } = useCart();
-    const quantity = product ? getItemQuantity(product.id) : 0;
+    const { addToCart, updateQuantity, removeFromCart, itemCount, cartItems } = useCart();
+    const { toggleWishlist, isInWishlist } = useWishlist();
+
+    // Calculate quantity for the SPECIFIC selected variant
+    const quantity = product ? (cartItems.find(item => {
+        if (item.id !== product.id) return false;
+
+        // If product has colors, match the selected color
+        if (selectedColor) {
+            const variantOptions = item.variantOptions || [];
+            return variantOptions.some(v => v.name === "رنگ" && v.value === selectedColor.name);
+        }
+
+        // If product has no colors, match item with no variants (or ignore variants)
+        return true;
+    })?.qty || 0) : 0;
+
+    const isFavorite = product ? isInWishlist(product.id) : false;
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -55,11 +78,13 @@ export default function ProductDetailPage() {
 
         try {
             setAddingToCart(true);
-            await addToCart(product, 1, selectedColor?.hex);
+            const variantOptions = selectedColor ? [{ name: "رنگ", value: selectedColor.name }] : [];
+            await addToCart(product, 1, variantOptions);
             setAddedToCart(true);
             setTimeout(() => setAddedToCart(false), 2000);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error adding to cart:", err);
+            alert(`Error: ${err.message || "Unknown error"}`);
         } finally {
             setAddingToCart(false);
         }
@@ -68,7 +93,8 @@ export default function ProductDetailPage() {
     const handleIncrement = async () => {
         if (!product) return;
         try {
-            await updateQuantity(product.id, quantity + 1);
+            const variantOptions = selectedColor ? [{ name: "رنگ", value: selectedColor.name }] : [];
+            await updateQuantity(product.id, quantity + 1, variantOptions);
         } catch (err) {
             console.error("Error incrementing:", err);
         }
@@ -77,10 +103,11 @@ export default function ProductDetailPage() {
     const handleDecrement = async () => {
         if (!product) return;
         try {
+            const variantOptions = selectedColor ? [{ name: "رنگ", value: selectedColor.name }] : [];
             if (quantity > 1) {
-                await updateQuantity(product.id, quantity - 1);
+                await updateQuantity(product.id, quantity - 1, variantOptions);
             } else {
-                await removeFromCart(product.id);
+                await removeFromCart(product.id, variantOptions);
             }
         } catch (err) {
             console.error("Error decrementing:", err);
@@ -142,47 +169,171 @@ export default function ProductDetailPage() {
         <div className="min-h-screen bg-white pb-24">
 
             {/* Header (Transparent/Floating) */}
-            <div className="fixed top-0 left-0 w-full z-20 flex justify-between items-center p-4">
-                <Link href="/" className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:bg-white">
-                    <ChevronLeft />
+            <div className="fixed top-0 left-0 w-full z-20 flex justify-between items-center p-4 pointer-events-none">
+                {/* Right: Close Button */}
+                <Link href="/" className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:bg-white pointer-events-auto">
+                    <X size={24} />
                 </Link>
-                <div className="flex gap-3">
-                    <button className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:text-red-500">
-                        <Heart size={20} />
+
+                {/* Left: Actions (Favorites, Cart, Search) - Visual LTR */}
+                <div className="flex gap-3 pointer-events-auto" dir="ltr">
+                    {/* Favorites */}
+                    <button
+                        onClick={() => product && toggleWishlist(product)}
+                        className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:text-red-500 transition-colors"
+                    >
+                        <Heart size={20} className={isFavorite ? "fill-red-500 text-red-500" : ""} />
                     </button>
-                    <button className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm">
-                        <Share2 size={20} />
+
+                    {/* Cart */}
+                    <Link href="/cart" className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:text-vita-600 transition-colors relative">
+                        <ShoppingCart size={20} />
+                        {itemCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-vita-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                                {itemCount}
+                            </span>
+                        )}
+                    </Link>
+
+                    {/* Search */}
+                    <button className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:text-vita-600 transition-colors">
+                        <Search size={20} />
                     </button>
                 </div>
             </div>
 
             {/* Gallery Slider */}
-            <div className="relative bg-gray-50 h-[380px] w-full">
-                <Swiper modules={[Pagination]} pagination={{ clickable: true }} className="h-full">
+            <div className="relative bg-gray-50 w-full pb-10">
+                <div className="h-[380px] w-full">
+                    <Swiper
+                        modules={[Pagination]}
+                        pagination={{ clickable: true }}
+                        className="h-full"
+                        onSwiper={setSwiperInstance}
+                        onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+                    >
+                        {product.images.map((img, index) => (
+                            <SwiperSlide key={index} className="flex items-center justify-center">
+                                <div
+                                    className="w-full h-full flex items-center justify-center text-gray-300 relative cursor-zoom-in"
+                                    onClick={() => {
+                                        setInitialSlide(index);
+                                        setIsGalleryOpen(true);
+                                    }}
+                                >
+                                    <Image
+                                        src={img}
+                                        alt={`${product.title} - ${index + 1}`}
+                                        fill
+                                        className="object-contain p-8"
+                                    />
+                                    {product.campaignLabel && (
+                                        <div className="absolute top-4 left-4 z-20">
+                                            <span className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
+                                                product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                                    'bg-gradient-to-r from-lime-500 to-orange-400'
+                                                }`}>
+                                                {product.campaignLabel}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                </div>
+
+                {/* Thumbnails */}
+                <div className="flex gap-3 px-4 overflow-x-auto no-scrollbar mt-2 pb-4">
                     {product.images.map((img, index) => (
-                        <SwiperSlide key={index} className="flex items-center justify-center">
-                            <div className="w-full h-full flex items-center justify-center text-gray-300 relative">
-                                <Image
-                                    src={img}
-                                    alt={`${product.title} - ${index + 1}`}
-                                    fill
-                                    className="object-contain p-8"
-                                />
-                                {product.campaignLabel && (
-                                    <div className="absolute top-4 left-4 z-20">
-                                        <span className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
-                                            product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
-                                                'bg-gradient-to-r from-lime-500 to-orange-400'
-                                            }`}>
-                                            {product.campaignLabel}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </SwiperSlide>
+                        <button
+                            key={index}
+                            onClick={() => swiperInstance?.slideTo(index)}
+                            className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${activeIndex === index
+                                ? "border-vita-500 shadow-md scale-105"
+                                : "border-transparent opacity-60 hover:opacity-100"
+                                }`}
+                        >
+                            <Image
+                                src={img}
+                                alt={`Thumbnail ${index + 1}`}
+                                fill
+                                className="object-cover"
+                            />
+                        </button>
                     ))}
-                </Swiper>
+                </div>
             </div>
+
+            {/* Full Screen Gallery Modal */}
+            <AnimatePresence>
+                {isGalleryOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] bg-black/95 flex flex-col"
+                    >
+                        {/* Gallery Header */}
+                        <div className="flex items-center justify-between p-4 text-white z-10">
+                            <span className="text-sm font-medium">
+                                {product.images.length} / <span id="current-slide">1</span>
+                            </span>
+                            <button
+                                onClick={() => setIsGalleryOpen(false)}
+                                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Zoomable Swiper */}
+                        <div className="flex-1 h-full w-full overflow-hidden">
+                            <Swiper
+                                modules={[Zoom, Navigation, Pagination]}
+                                zoom={true}
+                                navigation={false}
+                                pagination={{
+                                    type: 'fraction',
+                                    el: '#current-slide', // Custom pagination element
+                                    formatFractionCurrent: (number) => number,
+                                    formatFractionTotal: (number) => number,
+                                    renderFraction: (currentClass, totalClass) => {
+                                        return `<span class="${currentClass}"></span>`;
+                                    }
+                                }}
+                                initialSlide={initialSlide}
+                                className="h-full w-full"
+                                onSlideChange={(swiper) => {
+                                    const el = document.getElementById('current-slide');
+                                    if (el) el.innerText = (swiper.realIndex + 1).toString();
+                                }}
+                            >
+                                {product.images.map((img, index) => (
+                                    <SwiperSlide key={index} className="flex items-center justify-center">
+                                        <div className="swiper-zoom-container w-full h-full flex items-center justify-center">
+                                            <div className="relative w-full h-full max-w-4xl max-h-[80vh]">
+                                                <Image
+                                                    src={img}
+                                                    alt={`${product.title} - ${index + 1}`}
+                                                    fill
+                                                    className="object-contain"
+                                                    priority={index === initialSlide}
+                                                />
+                                            </div>
+                                        </div>
+                                    </SwiperSlide>
+                                ))}
+                            </Swiper>
+                        </div>
+
+                        {/* Gallery Footer (Thumbnails could go here) */}
+                        <div className="p-4 text-center text-white/50 text-xs">
+                            برای بزرگنمایی دو بار ضربه بزنید
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Info Section */}
             <div className="px-4 py-6 -mt-6 relative bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-10">
@@ -292,12 +443,22 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Sticky Action Bar */}
-            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-50 flex items-center justify-between gap-4 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-[100] flex items-center justify-between gap-4 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
                 <div className="flex flex-col">
                     {product.oldPrice && (
-                        <span className="text-[10px] text-gray-400 line-through decoration-red-400 decoration-1 text-left pl-1">
-                            {product.oldPrice.toLocaleString("fa-IR")}
-                        </span>
+                        <div className="flex items-center gap-2 mb-1">
+                            {product.discount > 0 && (
+                                <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'red-purple' ? 'bg-rose-600' :
+                                    product.campaignTheme === 'gold-red' ? 'bg-amber-600' :
+                                        'bg-[#ef394e]'
+                                    }`}>
+                                    {product.discount.toLocaleString("fa-IR")}٪
+                                </div>
+                            )}
+                            <span className="text-[12px] text-gray-400 line-through decoration-gray-300 decoration-1">
+                                {product.oldPrice.toLocaleString("fa-IR")}
+                            </span>
+                        </div>
                     )}
                     <div className="flex items-center gap-1">
                         <span className="text-xl font-black text-black">

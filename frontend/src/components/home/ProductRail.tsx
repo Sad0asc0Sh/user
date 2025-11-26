@@ -54,8 +54,8 @@ export default function ProductRail({ title, products }: ProductRailProps) {
                   {product.campaignLabel && (
                     <div className="absolute top-2 left-2 z-20">
                       <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
-                          product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
-                            'bg-gradient-to-r from-lime-500 to-orange-400'
+                        product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                          'bg-gradient-to-r from-lime-500 to-orange-400'
                         }`}>
                         {product.campaignLabel}
                       </span>
@@ -71,12 +71,7 @@ export default function ProductRail({ title, products }: ProductRailProps) {
                     </div>
                   )}
 
-                  {/* Discount Badge (Only if in stock) */}
-                  {product.countInStock > 0 && product.discount > 0 && (
-                    <span className="absolute top-2 right-2 bg-[#ef4056] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full z-20">
-                      {product.discount}%
-                    </span>
-                  )}
+
                 </div>
 
                 {/* Title */}
@@ -92,9 +87,17 @@ export default function ProductRail({ title, products }: ProductRailProps) {
                   {/* Row 1: Old Price (if discount and in stock) */}
                   <div className="flex items-center justify-between h-5">
                     {product.countInStock > 0 && product.discount > 0 ? (
-                      <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
-                        {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
-                      </span>
+                      <>
+                        <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'gold-red' ? 'bg-[#ef394e]' :
+                          product.campaignTheme === 'red-purple' ? 'bg-rose-600' :
+                            'bg-[#ef394e]'
+                          }`}>
+                          {product.discount.toLocaleString("fa-IR")}٪
+                        </div>
+                        <span className="text-[11px] text-gray-300 line-through decoration-gray-300">
+                          {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
+                        </span>
+                      </>
                     ) : (
                       <div className="h-5" />
                     )}

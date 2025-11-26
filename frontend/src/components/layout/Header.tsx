@@ -6,8 +6,12 @@ import { Logo } from "@/components/ui/Logo";
 import { useState } from "react";
 import AIChatSheet from "@/components/features/ai/AIChatSheet";
 
-export default function Header() {
-    const [isAIOpen, setIsAIOpen] = useState(false);
+interface HeaderProps {
+    isAIOpen: boolean;
+    setIsAIOpen: (open: boolean) => void;
+}
+
+export default function Header({ isAIOpen, setIsAIOpen }: HeaderProps) {
     return (
         <header className="sticky top-0 z-50 w-full border-b border-welf-200 bg-white/80 backdrop-blur-md">
             <div className="mobile-container flex h-16 items-center justify-between">

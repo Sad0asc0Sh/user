@@ -1,23 +1,33 @@
 const express = require('express')
 const router = express.Router()
 const {
+  createOrder,
   getAllOrders,
   getOrderById,
   updateOrderStatus,
+  getMyOrders, // NEW
 } = require('../controllers/orderController')
 const { protect, authorize } = require('../middleware/auth')
 
 // ============================================
-// GET /api/orders - دریافت لیست تمام سفارشات
-// فقط برای ادمین
+// Customer-Facing Routes
 // ============================================
-router.get('/', protect, authorize('admin', 'manager', 'superadmin'), getAllOrders)
+
+// GET /api/orders/my-orders - دریافت سفارشات خود کاربر
+router.get('/my-orders', protect, getMyOrders)
+
+// POST /api/orders - ایجاد سفارش جدید
+router.post('/', protect, createOrder)
+
+// GET /api/orders/:id - دریافت جزئیات سفارش (مشتری: فقط سفارش خود، ادمین: همه)
+router.get('/:id', protect, getOrderById)
 
 // ============================================
-// GET /api/orders/:id - دریافت جزئیات یک سفارش
-// فقط برای ادمین
+// Admin Routes
 // ============================================
-router.get('/:id', protect, authorize('admin', 'manager', 'superadmin'), getOrderById)
+
+// GET /api/orders - دریافت لیست تمام سفارشات
+router.get('/', protect, authorize('admin', 'manager', 'superadmin'), getAllOrders)
 
 // ============================================
 // PUT /api/orders/:id/status - به‌روزرسانی وضعیت سفارش

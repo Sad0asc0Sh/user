@@ -34,7 +34,7 @@ export default function ServicesWidget() {
                 <div
                     className={`fixed bottom-44 left-0 z-40 transition-all duration-700 ease-in-out cursor-pointer shadow-lg hover:shadow-xl
                     ${isExpanded ? "translate-x-0 pr-6 pl-4" : "-translate-x-1/2 pl-8 pr-3 hover:translate-x-[-40%]"}
-                    h-12 flex items-center gap-2 rounded-r-full bg-gradient-to-r from-amber-400 to-rose-600 text-white`}
+                    h-12 flex items-center gap-2 rounded-r-full bg-gradient-to-r from-sky-400 to-purple-600 text-white`}
                     onClick={() => setIsExpanded(true)}
                 >
                     <div className={`transition-transform duration-700 ${isExpanded ? "rotate-0" : "rotate-12 scale-110"}`}>

@@ -11,7 +11,13 @@
       "Bash(taskkill /F /PID 37740)",
       "Bash(taskkill //F //PID 37740)",
       "Bash(taskkill //F //PID 39584)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(dir:*)",
+      "Bash(taskkill:*)",
+      "Bash(if not exist \"frontend\\src\\app\\complete-profile\" mkdir \"frontend\\src\\app\\complete-profile\")",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(node server.js:*)"
     ],
     "deny": [],
     "ask": []

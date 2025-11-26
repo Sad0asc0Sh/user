@@ -249,6 +249,17 @@ router.get('/', async (req, res) => {
           newItem.price = originalPrice - discountAmount
           newItem.compareAtPrice = originalPrice
         }
+      } else if (newItem.discount > 0) {
+        // Apply direct product discount (e.g. Flash Deal without Campaign)
+        const originalPrice = newItem.price
+        const discountAmount = (originalPrice * newItem.discount) / 100
+        newItem.price = originalPrice - discountAmount
+        newItem.compareAtPrice = originalPrice
+
+        if (newItem.isFlashDeal) {
+          newItem.campaignLabel = 'پیشنهاد لحظه‌ای'
+          newItem.campaignTheme = 'gold-red'
+        }
       }
 
       return newItem
@@ -310,6 +321,17 @@ router.get('/:id', async (req, res) => {
         const discountAmount = (originalPrice * activeSale.discountPercentage) / 100
         productObj.price = originalPrice - discountAmount
         productObj.compareAtPrice = originalPrice
+      }
+    } else if (productObj.discount > 0) {
+      // Apply direct product discount
+      const originalPrice = productObj.price
+      const discountAmount = (originalPrice * productObj.discount) / 100
+      productObj.price = originalPrice - discountAmount
+      productObj.compareAtPrice = originalPrice
+
+      if (productObj.isFlashDeal) {
+        productObj.campaignLabel = 'پیشنهاد لحظه‌ای'
+        productObj.campaignTheme = 'gold-red'
       }
     }
 
@@ -401,7 +423,7 @@ router.put(
   async (req, res) => {
     try {
       const body = req.body || {}
-      const { removeAllImages, ...updates } = body
+      const { removeAllImages, imagesToRemove, ...updates } = body
 
       const product = await Product.findById(req.params.id)
       if (!product) {
@@ -428,6 +450,61 @@ router.put(
           }
         }
         updates.images = []
+      } else if (Array.isArray(imagesToRemove) && imagesToRemove.length > 0) {
+        const toRemove = imagesToRemove
+
+        const remainingImages = []
+
+        if (Array.isArray(product.images)) {
+          for (const img of product.images) {
+            const existingUrl =
+              img && typeof img === 'object'
+                ? img.url
+                : typeof img === 'string'
+                  ? img
+                  : undefined
+            const existingPublicId =
+              img && typeof img === 'object' && img.public_id ? img.public_id : undefined
+
+            const shouldRemove = toRemove.some((r) => {
+              const rUrl =
+                r && typeof r === 'object'
+                  ? r.url
+                  : typeof r === 'string'
+                    ? r
+                    : undefined
+              const rPublicId =
+                r && typeof r === 'object' && r.public_id ? r.public_id : undefined
+
+              if (existingPublicId && rPublicId) {
+                return existingPublicId === rPublicId
+              }
+
+              if (!existingPublicId && existingUrl && rUrl) {
+                return existingUrl === rUrl
+              }
+
+              return false
+            })
+
+            if (shouldRemove) {
+              if (existingPublicId) {
+                try {
+                  await cloudinary.uploader.destroy(existingPublicId)
+                } catch (err) {
+                  console.error(
+                    'Error deleting product image from Cloudinary during partial update:',
+                    err.message,
+                  )
+                }
+              }
+            } else {
+              remainingImages.push(img)
+            }
+          }
+        }
+
+        updates.images = remainingImages
       }
 
       // Clean up invalid ObjectId references before updating

@@ -88,9 +88,22 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
 
   // Handle images - support string URLs and objects with `url`
   const normalizeImage = (img: any): string | null => {
-    if (typeof img === "string" && img.trim() !== "") return img.trim();
-    if (img && typeof img === "object" && typeof img.url === "string" && img.url.trim() !== "") {
-      return img.url.trim();
+    let url: string | null = null;
+    if (typeof img === "string" && img.trim() !== "") url = img.trim();
+    else if (img && typeof img === "object" && typeof img.url === "string" && img.url.trim() !== "") {
+      url = img.url.trim();
+    }
+
+    if (url) {
+      // If url is relative (starts with /), prepend the backend URL
+      if (url.startsWith("/")) {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
+        let BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
+        // Force localhost to 127.0.0.1 to avoid Next.js private IP errors
+        BACKEND_URL = BACKEND_URL.replace("localhost", "127.0.0.1");
+        return `${BACKEND_URL}${url}`;
+      }
+      return url;
     }
     return null;
   };
@@ -108,7 +121,7 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
     }
   }
   if (imageArray.length === 0) {
-    imageArray = ["/placeholder-product.png"];
+    imageArray = ["/placeholder.svg"];
   }
 
   // CRITICAL FIX: Backend uses 'stock', not 'countInStock'

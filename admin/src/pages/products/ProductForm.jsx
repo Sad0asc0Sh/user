@@ -53,6 +53,7 @@ function ProductForm() {
   const [flashDealEndTime, setFlashDealEndTime] = useState('')
   const [isSpecialOffer, setIsSpecialOffer] = useState(false)
   const [specialOfferEndTime, setSpecialOfferEndTime] = useState('')
+  const [removedImages, setRemovedImages] = useState([])
 
   // Category store (Zustand)
   const { categoriesTree, loading: categoriesLoading } = useCategoryStore(
@@ -74,12 +75,15 @@ function ProductForm() {
     return images
       .map((img, index) => {
         const url = typeof img === 'string' ? img : img?.url
+        const public_id =
+          img && typeof img === 'object' && img.public_id ? img.public_id : undefined
         if (!url) return null
         return {
           uid: String(index),
           name: `image-${index + 1}`,
           status: 'done',
           url,
+          public_id,
         }
       })
       .filter(Boolean)
@@ -361,6 +365,7 @@ function ProductForm() {
         await api.put(`/products/${id}`, {
           ...payload,
           removeAllImages: files.length === 0,
+          imagesToRemove: removedImages,
         })
 
         // آپلود تصاویر جدید (اگر انتخاب شده باشند)
@@ -580,6 +585,18 @@ function ProductForm() {
                       beforeUpload={() => false}
                       fileList={files}
                       onChange={({ fileList }) => setFiles(fileList)}
+                      onRemove={(file) => {
+                        if (file && (file.url || file.public_id)) {
+                          setRemovedImages((prev) => [
+                            ...prev,
+                            {
+                              url: file.url,
+                              public_id: file.public_id,
+                            },
+                          ])
+                        }
+                        return true
+                      }}
                       listType="picture"
                     >
                       <p className="ant-upload-drag-icon">

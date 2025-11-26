@@ -6,11 +6,21 @@ const Admin = require('../models/Admin')
 const { sendResetPasswordEmail } = require('../utils/notificationService')
 const { protect } = require('../middleware/auth')
 const { upload } = require('../middleware/upload')
-const { updateMyProfile, updateMyAvatar } = require('../controllers/authController')
+// const { updateMyProfile, updateMyAvatar } = require('../controllers/authController') // REMOVED: This was for Admin
 const {
   sendOtp,
   verifyOtp,
   getProfile: getCustomerProfile,
+  googleLogin,
+  completeProfile,
+  loginWithPassword,
+  forgotPassword,
+  resetPassword,
+  updateProfile, // NEW
+  updateAvatar, // NEW
+  addAddress, // NEW
+  updateAddress, // NEW
+  deleteAddress, // NEW
 } = require('../controllers/customerAuthController')
 
 // JWT configuration
@@ -32,6 +42,12 @@ const generateToken = (userId) => {
 // CUSTOMER AUTHENTICATION ROUTES (OTP-based)
 // ============================================
 
+// Debug Middleware
+router.use((req, res, next) => {
+  console.log(`[AUTH ROUTER] ${req.method} ${req.path}`)
+  next()
+})
+
 // POST /api/auth/send-otp
 // Send OTP code to customer mobile number
 router.post('/send-otp', sendOtp)
@@ -40,9 +56,54 @@ router.post('/send-otp', sendOtp)
 // Verify OTP and login customer
 router.post('/verify-otp', verifyOtp)
 
+// POST /api/auth/google
+// Google Login - Verify Google ID token and login/register user
+router.post('/google', googleLogin)
+
+// POST /api/auth/login-password
+// Login with username/mobile/email + password
+router.post('/login-password', loginWithPassword)
+
+// POST /api/auth/forgot-password
+// Send password reset email to customer
+router.post('/forgot-password', forgotPassword)
+
+// PUT /api/auth/reset-password/:token
+// Reset customer password using token from email
+router.put('/reset-password/:token', resetPassword)
+
+// PUT /api/auth/complete-profile
+// Complete profile by setting password and username (requires authentication)
+router.put('/complete-profile', protect, completeProfile)
+
 // GET /api/auth/profile
 // Get customer profile (requires authentication)
 router.get('/profile', protect, getCustomerProfile)
+
+// ============================================
+// CUSTOMER PROFILE & ADDRESS ROUTES
+// ============================================
+
+// PUT /api/auth/me/update
+// Update customer profile (name, email, password)
+router.put('/me/update', protect, updateProfile)
+
+// PUT /api/auth/me/avatar
+// Update customer avatar
+router.put('/me/avatar', protect, upload.single('avatar'), updateAvatar)
+
+// POST /api/auth/addresses
+// Add new address
+router.post('/addresses', protect, addAddress)
+
+// PUT /api/auth/addresses/:addressId
+// Update address
+router.put('/addresses/:addressId', protect, updateAddress)
+
+// DELETE /api/auth/addresses/:addressId
+// Delete address
+router.delete('/addresses/:addressId', protect, deleteAddress)
+
 
 // ============================================
 // ADMIN AUTHENTICATION ROUTES (Email/Password)
@@ -119,7 +180,7 @@ const makeLoginHandler = (allowedRoles) => async (req, res) => {
     console.error('Error in admin login:', error)
     return res.status(500).json({
       success: false,
-      message: 'خطا در ورود به سیستم',
+      message: `خطا در ورود به سیستم: ${error.message}`,
       error: error.message,
     })
   }
@@ -393,13 +454,13 @@ router.put('/admin/reset-password/:token', async (req, res) => {
 // PUT /api/auth/me/update
 // به‌روزرسانی اطلاعات پروفایل (نام، ایمیل، رمز عبور)
 // ============================================
-router.put('/me/update', protect, updateMyProfile)
+// router.put('/me/update', protect, updateMyProfile) // REMOVED: Replaced by customerAuthController.updateProfile
 
 // ============================================
 // PUT /api/auth/me/avatar
 // به‌روزرسانی آواتار کاربر
 // ============================================
-router.put('/me/avatar', protect, upload.single('avatar'), updateMyAvatar)
+// router.put('/me/avatar', protect, upload.single('avatar'), updateMyAvatar) // REMOVED: Replaced by customerAuthController.updateAvatar
 
 module.exports = router
 

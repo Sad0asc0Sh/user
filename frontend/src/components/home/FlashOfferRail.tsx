@@ -73,7 +73,7 @@ function FlashDealCard({ product }: { product: Product }) {
       >
         {/* Timer Badge (Hide if out of stock) */}
         {product.countInStock > 0 ? (
-          <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[10px] font-bold shadow-sm">
+          <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[10px] font-bold shadow-sm" dir="ltr">
             {hours}:{minutes}:{seconds}
           </div>
         ) : null}
@@ -90,13 +90,15 @@ function FlashDealCard({ product }: { product: Product }) {
           {product.campaignLabel && (
             <div className="absolute bottom-2 left-2 z-20">
               <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
-                  product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
-                    'bg-gradient-to-r from-lime-500 to-orange-400'
+                product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                  'bg-gradient-to-r from-lime-500 to-orange-400'
                 }`}>
                 {product.campaignLabel}
               </span>
             </div>
           )}
+
+
 
           {/* Out of Stock Overlay */}
           {product.countInStock === 0 && (
@@ -107,12 +109,7 @@ function FlashDealCard({ product }: { product: Product }) {
             </div>
           )}
 
-          {/* Discount Badge (Only if in stock) */}
-          {product.countInStock > 0 && product.discount > 0 && (
-            <span className="absolute top-2 right-2 bg-[#ef4056] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full z-10">
-              {product.discount}٪
-            </span>
-          )}
+
         </div>
 
         {/* Product Name */}
@@ -125,9 +122,14 @@ function FlashDealCard({ product }: { product: Product }) {
           {/* Row 1: Old Price */}
           <div className="flex items-center justify-between h-5">
             {product.countInStock > 0 && product.discount > 0 ? (
-              <span className="text-[10px] text-gray-300 line-through decoration-gray-300">
-                {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
-              </span>
+              <>
+                <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'red-purple' ? 'bg-rose-600' : 'bg-amber-600'}`}>
+                  {product.discount.toLocaleString("fa-IR")}٪
+                </div>
+                <span className="text-[11px] text-gray-300 line-through decoration-gray-300">
+                  {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
+                </span>
+              </>
             ) : <div className="h-5" />}
           </div>
 
@@ -176,7 +178,7 @@ export default function FlashOfferRail() {
       <div className="flex items-center gap-2 px-4 mb-2">
         <Timer className="text-vita-500 w-5 h-5" />
         <SectionTitle className="!mb-0 !px-0">
-          فروش ویژه لحظه‌ای
+          پیشنهادهای‌لحظه‌ای
         </SectionTitle>
       </div>
 

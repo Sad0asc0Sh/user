@@ -396,10 +396,28 @@ exports.addOrUpdateItem = async (req, res) => {
       })
     }
 
-    // پیدا کردن آیتم در سبد
-    const existingItemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === productId
-    )
+    // پیدا کردن آیتم در سبد - با در نظر گرفتن variantOptions
+    // پیدا کردن آیتم در سبد - با در نظر گرفتن variantOptions
+    const existingItemIndex = cart.items.findIndex((item) => {
+      // بررسی product ID
+      if (item.product.toString() !== productId) return false
+
+      // بررسی variantOptions
+      const itemVariants = Array.isArray(item.variantOptions) ? item.variantOptions : []
+      const newVariants = Array.isArray(variantOptions) ? variantOptions : []
+
+      // اگر تعداد variant ها فرق کند، آیتم‌های متفاوتی هستند
+      if (itemVariants.length !== newVariants.length) return false
+
+      // بررسی تطابق هر variant (با تبدیل به رشته برای اطمینان)
+      return itemVariants.every((v1) =>
+        newVariants.some((v2) =>
+          v1 && v2 &&
+          String(v1.name).trim() === String(v2.name).trim() &&
+          String(v1.value).trim() === String(v2.value).trim()
+        )
+      )
+    })
 
     if (existingItemIndex > -1) {
       // به‌روزرسانی تعداد
@@ -447,11 +465,24 @@ exports.addOrUpdateItem = async (req, res) => {
 
 // ============================================
 // DELETE /api/cart/item/:productId - حذف آیتم
+// Query params: variantOptions (optional JSON string)
 // ============================================
 exports.removeItem = async (req, res) => {
   try {
     const { productId } = req.params
     const userId = req.user._id
+
+    // دریافت variantOptions از query params یا body
+    let variantOptions = []
+    if (req.query.variantOptions) {
+      try {
+        variantOptions = JSON.parse(req.query.variantOptions)
+      } catch (e) {
+        variantOptions = []
+      }
+    } else if (req.body.variantOptions) {
+      variantOptions = req.body.variantOptions
+    }
 
     const cart = await Cart.findOne({ user: userId, status: 'active' })
 
@@ -462,10 +493,29 @@ exports.removeItem = async (req, res) => {
       })
     }
 
-    // حذف آیتم
-    cart.items = cart.items.filter(
-      (item) => item.product.toString() !== productId
-    )
+    // حذف آیتم - با در نظر گرفتن variantOptions
+    cart.items = cart.items.filter((item) => {
+      // بررسی product ID
+      if (item.product.toString() !== productId) return true
+
+      // بررسی variantOptions
+      const itemVariants = Array.isArray(item.variantOptions) ? item.variantOptions : []
+      const targetVariants = Array.isArray(variantOptions) ? variantOptions : []
+
+      // اگر تعداد variant ها فرق کند، آیتم‌های متفاوتی هستند
+      if (itemVariants.length !== targetVariants.length) return true
+
+      // بررسی تطابق هر variant - اگر match کرد، حذف شود (return false)
+      const isMatch = itemVariants.every((v1) =>
+        targetVariants.some((v2) =>
+          v1 && v2 &&
+          String(v1.name).trim() === String(v2.name).trim() &&
+          String(v1.value).trim() === String(v2.value).trim()
+        )
+      )
+
+      return !isMatch // true = نگه دار، false = حذف کن
+    })
 
     // محاسبه و ذخیره
     cart.calculateTotal()

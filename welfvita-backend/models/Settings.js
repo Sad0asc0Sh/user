@@ -33,6 +33,23 @@ const settingsSchema = new mongoose.Schema(
       apiSecret: { type: String, select: false },
     },
 
+    // ZarinPal Payment Configuration
+    paymentConfig: {
+      merchantId: {
+        type: String,
+        default: '',
+        select: false, // Hidden by default for security
+      },
+      isSandbox: {
+        type: Boolean,
+        default: true, // Start with sandbox mode
+      },
+      isActive: {
+        type: Boolean,
+        default: false, // Disabled until merchant ID is set
+      },
+    },
+
     // Notification settings
     notificationSettings: {
       smsApiKey: { type: String, select: false },
@@ -126,6 +143,13 @@ const settingsSchema = new mongoose.Schema(
         default: 1000,
         min: 10,
         max: 100000,
+      },
+      // محدودیت پیام روزانه برای هر کاربر
+      userDailyLimit: {
+        type: Number,
+        default: 20,
+        min: 1,
+        max: 1000,
       },
       // حداکثر تعداد توکن در هر پاسخ
       maxTokens: {

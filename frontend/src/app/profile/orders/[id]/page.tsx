@@ -12,6 +12,7 @@ interface OrderDetail {
     itemsPrice: number;
     shippingPrice: number;
     taxPrice: number;
+    totalDiscount?: number;
     paymentMethod: string;
     isPaid: boolean;
     paidAt?: string;
@@ -274,6 +275,12 @@ export default function OrderDetailsPage() {
                             <div className="flex justify-between text-gray-500">
                                 <span>مالیات</span>
                                 <span>{order.taxPrice.toLocaleString('fa-IR')} تومان</span>
+                            </div>
+                        )}
+                        {order.totalDiscount && order.totalDiscount > 0 && (
+                            <div className="flex justify-between text-red-500 font-bold">
+                                <span>سود شما از این خرید</span>
+                                <span>{order.totalDiscount.toLocaleString('fa-IR')} تومان</span>
                             </div>
                         )}
                         <div className="border-t border-gray-100 my-2 pt-2 flex justify-between font-black text-gray-800 text-base">

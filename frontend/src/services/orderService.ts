@@ -33,8 +33,10 @@ export interface CreateOrderRequest {
   paymentMethod: "online" | "cod";
   itemsPrice: number;
   shippingPrice: number;
+  shippingMethod?: string;
   taxPrice?: number;
   totalPrice: number;
+  totalDiscount?: number;
 }
 
 /**
@@ -54,8 +56,10 @@ export interface Order {
   };
   itemsPrice: number;
   shippingPrice: number;
+  shippingMethod?: string;
   taxPrice: number;
   totalPrice: number;
+  totalDiscount?: number;
   isPaid: boolean;
   paidAt?: string;
   orderStatus: string;

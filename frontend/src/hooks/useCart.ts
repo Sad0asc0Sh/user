@@ -517,12 +517,27 @@ export const useCart = () => {
     return item?.qty || 0;
   };
 
+  /**
+   * Get total original price (before discounts)
+   */
+  const totalOriginalPrice = cartItems.reduce(
+    (total, item) => total + (item.price * item.qty),
+    0
+  );
+
+  /**
+   * Get total profit (savings from product discounts)
+   */
+  const totalProfit = totalOriginalPrice - totalPrice;
+
   return {
     // State
     cartItems,
     loading,
     error,
     totalPrice,
+    totalOriginalPrice,
+    totalProfit,
     itemCount,
 
     // Methods

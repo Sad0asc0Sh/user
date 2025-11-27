@@ -25,6 +25,8 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
+    const [usage, setUsage] = useState<{ current: number, limit: number, remaining: number } | null>(null);
+
     // --- Body Scroll Lock ---
     useEffect(() => {
         if (open) {
@@ -99,14 +101,20 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
                     role: 'ai',
                     content: aiMessage
                 }]);
+                if (response.data.data.usage) {
+                    setUsage(response.data.data.usage);
+                }
             } else {
                 throw new Error(response.data.message || 'خطا در دریافت پاسخ');
             }
         } catch (error: any) {
             console.error('[AI Chat] Error:', error);
+
+            const errorMessage = error.response?.data?.message || 'متأسفانه در ارتباط با سرور مشکلی پیش آمد. لطفاً دوباره تلاش کنید.';
+
             setMessages((prev) => [...prev, {
                 role: 'ai',
-                content: 'متأسفانه در ارتباط با سرور مشکلی پیش آمد. لطفاً دوباره تلاش کنید.',
+                content: errorMessage,
                 isError: true
             }]);
         } finally {
@@ -132,7 +140,14 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
                         <SheetClose className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
                             <X className="text-gray-600" size={24} />
                         </SheetClose>
-                        <span className="font-bold text-welf-800 text-sm">هوش مصنوعی ویلف‌ویتا</span>
+                        <div className="flex flex-col items-center">
+                            <span className="font-bold text-welf-800 text-sm">هوش مصنوعی ویلف‌ویتا</span>
+                            {usage && (
+                                <span className={`text-[10px] ${usage.remaining === 0 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
+                                    {usage.remaining} پیام باقی‌مانده
+                                </span>
+                            )}
+                        </div>
                         <button onClick={() => setMessages([])} className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors">
                             <RefreshCw className="text-gray-600" size={20} />
                         </button>

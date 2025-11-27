@@ -114,6 +114,10 @@ const orderSchema = new mongoose.Schema(
       default: 0.0,
       min: 0,
     },
+    shippingMethod: {
+      type: String,
+      required: false, // Optional for backward compatibility
+    },
     taxPrice: {
       type: Number,
       required: true,
@@ -124,6 +128,11 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 0.0,
+      min: 0,
+    },
+    totalDiscount: {
+      type: Number,
+      default: 0,
       min: 0,
     },
 

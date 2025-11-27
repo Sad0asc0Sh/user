@@ -6,13 +6,45 @@ import CartItem from "@/components/cart/CartItem";
 import CartSummary from "@/components/cart/CartSummary";
 import { useCart } from "@/hooks/useCart";
 
+import api from "@/lib/api";
+import { useState } from "react";
+
 export default function CartPage() {
     const router = useRouter();
-    const { cartItems, loading, updateQuantity, removeFromCart, totalPrice, isEmpty } = useCart();
+    const { cartItems, loading, updateQuantity, removeFromCart, totalPrice, totalOriginalPrice, isEmpty } = useCart();
+
+    // Coupon State
+    const [discount, setDiscount] = useState(0);
+    const [couponCode, setCouponCode] = useState("");
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState<string | null>(null);
+    const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
 
     // Calculations
-    const shipping = 50000; // Mock shipping
-    const finalPrice = totalPrice + shipping;
+    const shipping = 0; // Calculated at checkout
+    const finalPrice = Math.max(0, totalPrice + shipping - discount);
+
+    const handleApplyCoupon = async (code: string) => {
+        try {
+            setCouponLoading(true);
+            setCouponError(null);
+            setCouponSuccess(null);
+
+            const res = await api.get(`/coupons/validate/${code}?totalPrice=${totalPrice}`);
+
+            if (res.data.success) {
+                setDiscount(res.data.data.discount);
+                setCouponCode(code);
+                setCouponSuccess("کد تخفیف با موفقیت اعمال شد");
+            }
+        } catch (err: any) {
+            setCouponError(err.response?.data?.message || "کد تخفیف نامعتبر است");
+            setDiscount(0);
+            setCouponCode("");
+        } finally {
+            setCouponLoading(false);
+        }
+    };
 
     const handleIncrease = async (id: string, variantOptions?: Array<{ name: string; value: string }>) => {
         const item = cartItems.find(item => {
@@ -57,6 +89,11 @@ export default function CartPage() {
         } else {
             // Logged in - proceed to checkout
             console.log("[CART] Token found, proceeding to checkout");
+            // Pass coupon code via query param if needed, or store in context/localStorage
+            // For now, we just navigate. Ideally, we should persist the coupon.
+            if (couponCode) {
+                localStorage.setItem("appliedCoupon", couponCode);
+            }
             router.push("/checkout");
         }
     };
@@ -98,17 +135,27 @@ export default function CartPage() {
                     const itemKey = `${productId}-${item.color || "no-color"}-${variantKey}`;
 
                     return (
-                    <CartItem
-                        key={itemKey}
-                        item={item}
-                        onIncrease={() => handleIncrease(item.id, item.variantOptions)}
-                        onDecrease={() => handleDecrease(item.id, item.qty, item.variantOptions)}
-                    />
+                        <CartItem
+                            key={itemKey}
+                            item={item}
+                            onIncrease={() => handleIncrease(item.id, item.variantOptions)}
+                            onDecrease={() => handleDecrease(item.id, item.qty, item.variantOptions)}
+                        />
                     );
                 })}
 
                 {/* Summary Card */}
-                <CartSummary totalPrice={totalPrice} shipping={shipping} finalPrice={finalPrice} />
+                <CartSummary
+                    totalPrice={totalPrice}
+                    totalOriginalPrice={totalOriginalPrice}
+                    shipping={shipping}
+                    finalPrice={finalPrice}
+                    discount={discount}
+                    onApplyCoupon={handleApplyCoupon}
+                    couponLoading={couponLoading}
+                    couponError={couponError}
+                    couponSuccess={couponSuccess}
+                />
             </div>
 
             {/* Sticky Checkout Footer (Fixed ABOVE Bottom Nav) */}

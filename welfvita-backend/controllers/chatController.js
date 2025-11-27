@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const ChatHistory = require('../models/ChatHistory');
+const Settings = require('../models/Settings');
 const { generateExpertResponse } = require('../utils/groqService');
 
 /**
@@ -23,6 +24,28 @@ exports.handleMessage = async (req, res) => {
       if (!chatSession) {
         chatSession = new ChatHistory({ userId, messages: [] });
       }
+
+      // --- Rate Limiting Logic ---
+      const settings = await Settings.findOne({ singletonKey: 'main_settings' });
+      const userLimit = settings?.aiConfig?.userDailyLimit || 20;
+
+      // Check for daily reset
+      const now = new Date();
+      const lastReset = chatSession.usage?.lastReset ? new Date(chatSession.usage.lastReset) : new Date(0);
+
+      // Reset if it's a different day (simple check)
+      if (now.getDate() !== lastReset.getDate() || now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+        chatSession.usage = { dailyCount: 0, lastReset: now };
+      }
+
+      if (chatSession.usage.dailyCount >= userLimit) {
+        return res.status(429).json({
+          success: false,
+          message: `شما به سقف مجاز ${userLimit} پیام در روز رسیده‌اید. لطفاً فردا مجدداً تلاش کنید.`
+        });
+      }
+      // ---------------------------
+
       // Pass plain objects to service
       history = chatSession.messages.map(m => ({ role: m.role, content: m.content }));
     }
@@ -67,15 +90,32 @@ exports.handleMessage = async (req, res) => {
       }
 
       chatSession.lastUpdated = new Date();
+
+      // Increment usage
+      if (!chatSession.usage) chatSession.usage = { dailyCount: 0, lastReset: new Date() };
+      chatSession.usage.dailyCount += 1;
+
       await chatSession.save();
     }
 
     // 5. Send Response (Frontend compatible)
+    let usageInfo = null;
+    if (chatSession && chatSession.usage) {
+      const settings = await Settings.findOne({ singletonKey: 'main_settings' });
+      const userLimit = settings?.aiConfig?.userDailyLimit || 20;
+      usageInfo = {
+        current: chatSession.usage.dailyCount,
+        limit: userLimit,
+        remaining: Math.max(0, userLimit - chatSession.usage.dailyCount)
+      };
+    }
+
     res.json({
       success: true,
       data: {
         message: reply,
-        timestamp: new Date()
+        timestamp: new Date(),
+        usage: usageInfo
       }
     });
 

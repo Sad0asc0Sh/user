@@ -29,7 +29,11 @@ interface Address {
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { cartItems, totalPrice, isEmpty } = useCart();
+    const { cartItems, totalPrice, totalOriginalPrice, totalProfit, isEmpty } = useCart();
+
+    // Coupon State
+    const [discount, setDiscount] = useState(0);
+    const [couponCode, setCouponCode] = useState("");
 
     // User & Address State
     const [user, setUser] = useState<UserType | null>(null);
@@ -81,14 +85,64 @@ export default function CheckoutPage() {
     });
 
     // Pricing Calculations
-    const shippingPrice = 50000;
-    const taxPrice = 0;
-    const finalTotalPrice = totalPrice + shippingPrice + taxPrice;
+    // Shipping State
+    const [shippingMethods, setShippingMethods] = useState<any[]>([]);
+    const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | null>(null);
+    const [loadingShipping, setLoadingShipping] = useState(true);
 
-    // Load addresses on mount
+    // Pricing Calculations
+    const selectedMethod = shippingMethods.find(m => m._id === selectedShippingMethodId);
+    const shippingPrice = selectedMethod ? selectedMethod.cost : 0;
+    const taxPrice = 0;
+    const finalTotalPrice = Math.max(0, totalPrice + shippingPrice + taxPrice - discount);
+
+    // Total Savings (Product Profit + Coupon Discount)
+    const totalSavings = (totalProfit || 0) + discount;
+
+    // Load addresses, shipping methods, and coupon on mount
     useEffect(() => {
         loadUserData();
+        loadShippingMethods();
+        loadAppliedCoupon();
     }, []);
+
+    const loadAppliedCoupon = async () => {
+        const code = localStorage.getItem("appliedCoupon");
+        if (code) {
+            try {
+                const { default: api } = await import("@/lib/api");
+                const res = await api.get(`/coupons/validate/${code}?totalPrice=${totalPrice}`);
+                if (res.data.success) {
+                    setDiscount(res.data.data.discount);
+                    setCouponCode(code);
+                }
+            } catch (err) {
+                console.error("Invalid coupon in storage", err);
+                localStorage.removeItem("appliedCoupon");
+            }
+        }
+    };
+
+    const loadShippingMethods = async () => {
+        try {
+            setLoadingShipping(true);
+            // Assuming api is imported from "@/lib/api" which is used in orderService
+            // We can use api directly here since it's exported from lib/api
+            const { default: api } = await import("@/lib/api");
+            const res = await api.get('/shipping');
+            if (res.data.success) {
+                const activeMethods = res.data.data.filter((m: any) => m.isActive);
+                setShippingMethods(activeMethods);
+                if (activeMethods.length > 0) {
+                    setSelectedShippingMethodId(activeMethods[0]._id);
+                }
+            }
+        } catch (err) {
+            console.error("Error loading shipping methods", err);
+        } finally {
+            setLoadingShipping(false);
+        }
+    };
 
     const loadUserData = async () => {
         try {
@@ -347,8 +401,10 @@ export default function CheckoutPage() {
                 paymentMethod,
                 itemsPrice: totalPrice,
                 shippingPrice,
+                shippingMethod: selectedMethod?.name,
                 taxPrice,
                 totalPrice: finalTotalPrice,
+                totalDiscount: totalSavings,
             };
 
             const response = await orderService.create(orderData);
@@ -485,7 +541,55 @@ export default function CheckoutPage() {
                         )}
                     </div>
 
-                    {/* Step 2: Payment Method */}
+                    {/* Step 2: Shipping Method */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                <Package size={16} className="text-amber-600" />
+                            </div>
+                            <h2 className="font-bold text-gray-900">روش ارسال</h2>
+                        </div>
+
+                        {loadingShipping ? (
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 className="animate-spin text-amber-600" size={24} />
+                            </div>
+                        ) : shippingMethods.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                                هیچ روش ارسالی یافت نشد.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {shippingMethods.map((method) => (
+                                    <label
+                                        key={method._id}
+                                        className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedShippingMethodId === method._id ? "border-amber-500 bg-amber-50 shadow-sm" : "border-gray-100 bg-gray-50"
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="shippingMethod"
+                                            value={method._id}
+                                            checked={selectedShippingMethodId === method._id}
+                                            onChange={() => setSelectedShippingMethodId(method._id)}
+                                            className="w-4 h-4 text-amber-600 focus:ring-amber-500 accent-amber-600"
+                                        />
+                                        <div className="flex-1">
+                                            <span className="block text-sm font-bold text-gray-900">{method.name}</span>
+                                            {method.description && (
+                                                <span className="text-xs text-gray-500 mt-0.5 block">{method.description}</span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm font-bold text-gray-900">
+                                            {method.cost === 0 ? "رایگان" : `${method.cost.toLocaleString("fa-IR")} تومان`}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Step 3: Payment Method */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-4">
                             <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
@@ -574,6 +678,18 @@ export default function CheckoutPage() {
                                 <span>هزینه ارسال</span>
                                 <span>{shippingPrice.toLocaleString("fa-IR")} تومان</span>
                             </div>
+                            {totalSavings > 0 && (
+                                <div className="flex justify-between text-sm text-red-500 font-bold">
+                                    <span>سود شما از این خرید</span>
+                                    <span>{totalSavings.toLocaleString("fa-IR")} تومان</span>
+                                </div>
+                            )}
+                            {discount > 0 && (
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>کد تخفیف ({couponCode})</span>
+                                    <span>{discount.toLocaleString("fa-IR")} - تومان</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-base font-black text-gray-900 pt-3 border-t border-gray-100 mt-2">
                                 <span>مبلغ قابل پرداخت</span>
                                 <span className="text-amber-600">{finalTotalPrice.toLocaleString("fa-IR")} تومان</span>

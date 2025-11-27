@@ -95,6 +95,7 @@ exports.updateSettings = async (req, res) => {
       if (ai.baseUrl) settings.aiConfig.baseUrl = ai.baseUrl
       if (ai.model) settings.aiConfig.model = ai.model
       if (ai.maxDailyMessages !== undefined) settings.aiConfig.maxDailyMessages = ai.maxDailyMessages
+      if (ai.userDailyLimit !== undefined) settings.aiConfig.userDailyLimit = ai.userDailyLimit
       if (ai.maxTokens !== undefined) settings.aiConfig.maxTokens = ai.maxTokens
       if (ai.temperature !== undefined) settings.aiConfig.temperature = ai.temperature
       if (ai.customSystemPrompt !== undefined) settings.aiConfig.customSystemPrompt = ai.customSystemPrompt

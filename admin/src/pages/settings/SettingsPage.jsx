@@ -69,6 +69,7 @@ function SettingsPage() {
         aiConfig: {
           enabled: data.aiConfig?.enabled || false,
           apiKey: data.aiConfig?.apiKey || '',
+          userDailyLimit: data.aiConfig?.userDailyLimit || 20,
           customSystemPrompt: data.aiConfig?.customSystemPrompt || '',
         },
 
@@ -665,6 +666,14 @@ function SettingsPage() {
           // extra={<a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">دریافت‌کلید</a>}
           >
             <Input.Password placeholder="gsk_..." />
+          </Form.Item>
+
+          <Form.Item
+            name={['aiConfig', 'userDailyLimit']}
+            label="محدودیت پیام روزانه کاربر"
+            extra="تعداد پیام‌هایی که هر کاربر می‌تواند در روز ارسال کند."
+          >
+            <InputNumber min={1} max={1000} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item

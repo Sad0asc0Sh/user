@@ -12,8 +12,10 @@ exports.createOrder = async (req, res) => {
       paymentMethod,
       itemsPrice,
       shippingPrice,
+      shippingMethod,
       taxPrice,
       totalPrice,
+      totalDiscount,
     } = req.body
 
     const userId = req.user._id
@@ -41,8 +43,10 @@ exports.createOrder = async (req, res) => {
       paymentMethod: paymentMethod || 'online',
       itemsPrice,
       shippingPrice,
+      shippingMethod,
       taxPrice: taxPrice || 0,
       totalPrice,
+      totalDiscount: totalDiscount || 0,
       orderStatus: paymentMethod === 'cod' ? 'Processing' : 'Pending',
     })
 

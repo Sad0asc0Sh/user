@@ -160,8 +160,16 @@ export default function ProfilePage() {
         }
     };
 
+    const isVerified = !!user?.nationalCode;
+
     const menuItems = [
-        { icon: UserCheck, label: "احراز هویت", status: "تایید شده", statusColor: "text-green-600", href: "/profile/verification" },
+        {
+            icon: UserCheck,
+            label: "احراز هویت",
+            status: isVerified ? "تایید شده" : "تکمیل نشده",
+            statusColor: isVerified ? "text-green-600" : "text-red-500",
+            href: "/profile/verification"
+        },
         { icon: Heart, label: "علاقه‌مندی‌ها", href: "/profile/lists" },
         { icon: MessageSquare, label: "نقد و نظرات", href: "/profile/reviews" },
         { icon: MapPin, label: "آدرس‌ها", href: "/profile/addresses" },
@@ -290,10 +298,10 @@ export default function ProfilePage() {
                     </Link>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                    <OrderStatusItem icon={Box} label="جاری" count={orderStats.processing} active />
-                    <OrderStatusItem icon={CheckCircle2} label="تحویل شده" count={orderStats.delivered} />
-                    <OrderStatusItem icon={RefreshCcw} label="مرجوعی" count={orderStats.returned} />
-                    <OrderStatusItem icon={XCircle} label="لغو شده" count={orderStats.cancelled} />
+                    <OrderStatusItem icon={Box} label="جاری" count={orderStats.processing} active={orderStats.processing > 0} href="/profile/orders?status=current" />
+                    <OrderStatusItem icon={CheckCircle2} label="تحویل شده" count={orderStats.delivered} href="/profile/orders?status=delivered" />
+                    <OrderStatusItem icon={RefreshCcw} label="مرجوعی" count={orderStats.returned} href="/profile/orders?status=returned" />
+                    <OrderStatusItem icon={XCircle} label="لغو شده" count={orderStats.cancelled} href="/profile/orders?status=cancelled" />
                 </div>
             </div>
 
@@ -431,8 +439,8 @@ export default function ProfilePage() {
     );
 }
 
-function OrderStatusItem({ icon: Icon, label, count, active = false }: any) {
-    return (
+function OrderStatusItem({ icon: Icon, label, count, active = false, href }: any) {
+    const content = (
         <div className="flex flex-col items-center gap-2 cursor-pointer group select-none">
             <div className="relative">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${active ? 'bg-vita-50 text-vita-600 shadow-sm shadow-vita-100' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'}`}>
@@ -447,4 +455,9 @@ function OrderStatusItem({ icon: Icon, label, count, active = false }: any) {
             <span className={`text-[10px] font-bold transition-colors ${active ? 'text-gray-800' : 'text-gray-500 group-hover:text-gray-700'}`}>{label}</span>
         </div>
     );
+
+    if (href) {
+        return <Link href={href}>{content}</Link>;
+    }
+    return content;
 }

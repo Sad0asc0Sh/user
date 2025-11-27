@@ -53,7 +53,6 @@ const cartSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // هر کاربر فقط یک سبد فعال دارد
       index: true,
     },
 
@@ -80,6 +79,27 @@ const cartSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+
+    // تاریخ انقضای سبد خرید (TTL - Time To Live)
+    // اگر سبد خرید به مدت مشخصی بدون تغییر باشد، منقضی می‌شود
+    expiresAt: {
+      type: Date,
+      index: true, // برای query های سریع
+    },
+
+    // آیا سبد خرید منقضی شده است؟
+    isExpired: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    // آیا هشدار انقضا ارسال شده است؟
+    expiryWarningSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     // timestamps اهمیت حیاتی دارد
@@ -90,6 +110,7 @@ const cartSchema = new mongoose.Schema(
 
 // Index ترکیبی برای پیدا کردن سبدهای رها شده
 cartSchema.index({ status: 1, updatedAt: -1 })
+cartSchema.index({ expiresAt: 1, isExpired: 1 }) // برای پاکسازی خودکار
 
 // متد برای محاسبه مجموع قیمت
 cartSchema.methods.calculateTotal = function () {
@@ -97,6 +118,22 @@ cartSchema.methods.calculateTotal = function () {
     return total + item.price * item.quantity
   }, 0)
   return this.totalPrice
+}
+
+// متد برای تنظیم زمان انقضا
+cartSchema.methods.setExpiry = function (hours = 1) {
+  this.expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000)
+  this.isExpired = false
+  return this.expiresAt
+}
+
+// متد برای بررسی انقضا
+cartSchema.methods.checkExpiry = function () {
+  if (this.expiresAt && new Date() > this.expiresAt && !this.isExpired) {
+    this.isExpired = true
+    return true
+  }
+  return this.isExpired
 }
 
 module.exports = mongoose.model('Cart', cartSchema)

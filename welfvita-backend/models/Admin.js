@@ -65,6 +65,64 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Personal Info
+    nationalCode: {
+      type: String,
+      trim: true,
+    },
+    birthDate: {
+      type: Date,
+    },
+    landline: {
+      type: String,
+      trim: true,
+    },
+    shebaNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+
+    // Location (Default/Main)
+    province: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+
+    // Legal Entity Info
+    isLegal: {
+      type: Boolean,
+      default: false,
+    },
+    companyName: {
+      type: String,
+      trim: true,
+    },
+    companyNationalId: {
+      type: String, // شناسه ملی
+      trim: true,
+    },
+    companyRegistrationId: {
+      type: String, // شماره ثبت
+      trim: true,
+    },
+    companyLandline: {
+      type: String,
+      trim: true,
+    },
+    companyProvince: {
+      type: String,
+      trim: true,
+    },
+    companyCity: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

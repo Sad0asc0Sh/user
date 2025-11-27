@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, MapPin, Phone, User, Calendar, CreditCard, Package, CheckCircle2, Circle, Clock } from "lucide-react";
+import { ChevronRight, MapPin, Phone, User, Calendar, CreditCard, Package, CheckCircle2, Circle, Clock, Truck } from "lucide-react";
 import { authService } from "@/services/authService";
 
 interface OrderDetail {
@@ -18,6 +18,7 @@ interface OrderDetail {
     createdAt: string;
     shippedAt?: string;
     deliveredAt?: string;
+    trackingCode?: string;
     orderItems: {
         name: string;
         quantity: number;
@@ -78,7 +79,7 @@ export default function OrderDetailsPage() {
 
     const steps = [
         { status: 'Pending', label: 'ثبت سفارش', icon: Calendar },
-        { status: 'Processing', label: 'در حال پردازش', icon: Package },
+        { status: 'Processing', label: 'درحال پردازش', icon: Package },
         { status: 'Shipped', label: 'تحویل به پست', icon: Clock },
         { status: 'Delivered', label: 'تحویل شده', icon: CheckCircle2 },
     ];
@@ -160,6 +161,43 @@ export default function OrderDetailsPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* Tracking Code Section - Enhanced */}
+                    {order.trackingCode && (
+                        <div className="mt-6 relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50 -mr-16 -mt-16"></div>
+
+                            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-600">
+                                        <Truck size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 text-base mb-1">کد رهگیری مرسوله پستی</h3>
+                                        <p className="text-xs text-gray-500">برای پیگیری وضعیت مرسوله، از این کد استفاده کنید</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 w-full md:w-auto bg-white p-2 rounded-xl border border-blue-100 shadow-sm">
+                                    <div className="flex-1 px-3 text-center">
+                                        <span className="font-mono font-black text-lg text-gray-800 tracking-widest select-all">
+                                            {order.trackingCode}
+                                        </span>
+                                    </div>
+                                    <div className="h-8 w-px bg-gray-200 mx-1"></div>
+                                    <a
+                                        href="https://tracking.post.ir/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-bold shadow-blue-200 shadow-lg"
+                                    >
+                                        <span>پیگیری در پست</span>
+                                        <ChevronRight size={16} className="rotate-180" />
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

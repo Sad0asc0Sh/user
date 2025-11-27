@@ -88,10 +88,29 @@ exports.getDashboardStats = async (req, res) => {
       status: o.orderStatus || 'Pending',
     }))
 
+    // محاسبه میانگین ارزش سفارش (AOV)
+    const averageOrderValue = totalSalesAgg[0]?.count > 0 ? totalSales / totalSalesAgg[0].count : 0
+
+    // محاسبه رشد فروش نسبت به هفته گذشته
+    const last14Days = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+    const lastWeekSalesAgg = await Order.aggregate([
+      {
+        $match: {
+          isPaid: true,
+          createdAt: { $gte: last14Days, $lt: last7Days }
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+    ])
+    const lastWeekSales = lastWeekSalesAgg[0]?.total || 0
+    const salesGrowth = lastWeekSales > 0 ? ((totalSales - lastWeekSales) / lastWeekSales) * 100 : 100
+
     res.json({
       success: true,
       data: {
         totalSales,
+        salesGrowth: salesGrowth.toFixed(1),
+        averageOrderValue: Math.round(averageOrderValue),
         newOrders,
         pendingOrders,
         newCustomers,

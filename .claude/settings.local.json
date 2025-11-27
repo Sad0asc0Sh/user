@@ -17,7 +17,11 @@
       "Bash(if not exist \"frontend\\src\\app\\complete-profile\" mkdir \"frontend\\src\\app\\complete-profile\")",
       "Bash(curl:*)",
       "Bash(tasklist:*)",
-      "Bash(node server.js:*)"
+      "Bash(node server.js:*)",
+      "Bash(node -e:*)",
+      "Bash(node:*)",
+      "Bash(start:*)",
+      "Bash(server.log)"
     ],
     "deny": [],
     "ask": []

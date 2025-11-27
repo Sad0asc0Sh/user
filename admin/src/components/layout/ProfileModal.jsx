@@ -22,14 +22,14 @@ function ProfileModal({ open, onClose }) {
 
   // مقداردهی اولیه فرم با اطلاعات کاربر
   useEffect(() => {
-    if (user) {
+    if (open && user) {
       form.setFieldsValue({
         name: user.name,
         email: user.email,
       })
       setPreviewAvatar(user.avatar?.url || null)
     }
-  }, [user, form])
+  }, [open, user, form])
 
   // به‌روزرسانی اطلاعات پروفایل (نام، ایمیل، رمز عبور)
   const handleUpdateProfile = async (values) => {

@@ -1,8 +1,10 @@
 "use client";
 
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
-import { Camera, Send, X, RefreshCw, Sparkles, Box, Wrench, ShoppingBag, Phone, User } from "lucide-react";
+import { Camera, Send, X, RefreshCw, Sparkles, Box, Wrench, ShoppingBag, Phone, User, AlertCircle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import api from "@/lib/api";
+import { authService } from "@/services/authService";
 
 interface AIChatSheetProps {
     open: boolean;
@@ -12,11 +14,14 @@ interface AIChatSheetProps {
 interface Message {
     role: 'user' | 'ai';
     content: string;
+    isLoading?: boolean;
+    isError?: boolean;
 }
 
 export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
+    const [isTyping, setIsTyping] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -59,20 +64,54 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
         }
     };
 
-    const handleSend = () => {
-        if (!input.trim()) return;
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    const handleSend = async () => {
+        if (!input.trim() || isTyping) return;
+
         const userMsg: Message = { role: 'user', content: input };
         setMessages((prev) => [...prev, userMsg]);
         const currentInput = input;
         setInput("");
         if (textareaRef.current) textareaRef.current.style.height = "40px";
 
-        setTimeout(() => {
+        // Set typing indicator
+        setIsTyping(true);
+
+        try {
+            // Get current user from localStorage
+            const currentUser = authService.getUser();
+
+            // Call chat API
+            const response = await api.post('/chat', {
+                message: currentInput,
+                userId: currentUser?.id || undefined
+            });
+
+            if (response.data.success) {
+                const aiMessage = response.data.data.message;
+                setMessages((prev) => [...prev, {
+                    role: 'ai',
+                    content: aiMessage
+                }]);
+            } else {
+                throw new Error(response.data.message || 'خطا در دریافت پاسخ');
+            }
+        } catch (error: any) {
+            console.error('[AI Chat] Error:', error);
             setMessages((prev) => [...prev, {
                 role: 'ai',
-                content: `پاسخ هوش مصنوعی به: "${currentInput}"`
+                content: 'متأسفانه در ارتباط با سرور مشکلی پیش آمد. لطفاً دوباره تلاش کنید.',
+                isError: true
             }]);
-        }, 1000);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     return (
@@ -130,15 +169,21 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
                             <div className="flex flex-col gap-3 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4 px-1">
                                 {messages.map((msg, index) => (
                                     <div key={index} className={`flex gap-2 items-end ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mb-1 ${msg.role === 'user' ? 'bg-gray-200' : 'bg-vita-100'}`}>
-                                            {msg.role === 'user' ? <User size={14} className="text-gray-600" /> : <Sparkles size={14} className="text-vita-600" />}
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mb-1 ${msg.role === 'user' ? 'bg-gray-200' : msg.isError ? 'bg-red-100' : 'bg-vita-100'}`}>
+                                            {msg.role === 'user' ? (
+                                                <User size={14} className="text-gray-600" />
+                                            ) : msg.isError ? (
+                                                <AlertCircle size={14} className="text-red-600" />
+                                            ) : (
+                                                <Sparkles size={14} className="text-vita-600" />
+                                            )}
                                         </div>
-                                        <div className={`px-3.5 py-2 rounded-2xl text-[13px] leading-6 shadow-sm max-w-[85%] break-words whitespace-pre-wrap ${msg.role === 'user' ? 'bg-gray-800 text-white rounded-br-sm' : 'bg-orange-100 border border-orange-200 text-orange-900 rounded-bl-sm'}`}>
+                                        <div className={`px-3.5 py-2 rounded-2xl text-[13px] leading-6 shadow-sm max-w-[85%] break-words whitespace-pre-wrap ${msg.role === 'user' ? 'bg-gray-800 text-white rounded-br-sm' : msg.isError ? 'bg-red-50 border border-red-200 text-red-800 rounded-bl-sm' : 'bg-orange-100 border border-orange-200 text-orange-900 rounded-bl-sm'}`}>
                                             {msg.content}
                                         </div>
                                     </div>
                                 ))}
-                                {messages[messages.length - 1].role === 'user' && (
+                                {isTyping && (
                                     <div className="flex gap-2 animate-pulse mt-1">
                                         <div className="w-6 h-6 rounded-full bg-vita-50 flex items-center justify-center">
                                             <Sparkles size={12} className="text-vita-400" />
@@ -161,17 +206,19 @@ export default function AIChatSheet({ open, onOpenChange }: AIChatSheetProps) {
                                 rows={1}
                                 value={input}
                                 onChange={handleInput}
+                                onKeyDown={handleKeyDown}
                                 placeholder="از من بپرسید..."
                                 className="flex-1 bg-transparent border-none outline-none text-sm text-right min-h-[40px] max-h-[150px] py-2.5 resize-none overflow-y-auto placeholder:text-gray-400"
                                 style={{ height: '40px' }}
+                                disabled={isTyping}
                             />
                             <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1 mb-1.5 h-8">
                                 <button className="p-2 text-gray-400 hover:text-vita-600 transition"><Camera size={20} /></button>
                             </div>
                             <button
                                 onClick={handleSend}
-                                disabled={!input.trim()}
-                                className={`mb-1 p-3 rounded-full transition-all duration-300 ${input.trim() ? 'bg-vita-500 text-white shadow-lg shadow-vita-500/30 rotate-0 scale-100' : 'bg-gray-100 text-gray-300 rotate-90 scale-90'}`}
+                                disabled={!input.trim() || isTyping}
+                                className={`mb-1 p-3 rounded-full transition-all duration-300 ${input.trim() && !isTyping ? 'bg-vita-500 text-white shadow-lg shadow-vita-500/30 rotate-0 scale-100 hover:bg-vita-600' : 'bg-gray-100 text-gray-300 rotate-90 scale-90 cursor-not-allowed'}`}
                             >
                                 <Send size={18} className="rtl:-scale-x-100" />
                             </button>

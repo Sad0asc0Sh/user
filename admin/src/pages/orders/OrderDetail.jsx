@@ -21,6 +21,7 @@ import dayjs from 'dayjs'
 import jalaliday from 'jalaliday'
 import api from '../../api'
 import { useNotificationStore } from '../../stores'
+import Countdown from 'react-countdown'
 
 // فعال‌سازی تقویم جلالی
 dayjs.extend(jalaliday)
@@ -71,6 +72,9 @@ function OrderDetail() {
 
   const addNotification = useNotificationStore((state) => state.addNotification)
 
+  const [trackingCode, setTrackingCode] = useState('')
+  const [deliveryDays, setDeliveryDays] = useState('')
+
   const fetchOrder = async () => {
     setLoading(true)
     try {
@@ -79,6 +83,7 @@ function OrderDetail() {
       setOrder(data)
       setStatus(data?.orderStatus || '')
       setAdminNotes(data?.adminNotes || '')
+      setTrackingCode(data?.trackingCode || '')
     } catch (err) {
       const errorMsg =
         err?.response?.data?.message || err?.message || 'خطا در دریافت جزئیات سفارش'
@@ -99,7 +104,7 @@ function OrderDetail() {
       return
     }
 
-    if (status === order?.orderStatus && adminNotes === (order?.adminNotes || '')) {
+    if (status === order?.orderStatus && adminNotes === (order?.adminNotes || '') && trackingCode === (order?.trackingCode || '') && !deliveryDays) {
       message.info('تغییری برای ذخیره وجود ندارد')
       return
     }
@@ -109,6 +114,8 @@ function OrderDetail() {
       await api.put(`/orders/${id}/status`, {
         status,
         adminNotes: adminNotes || undefined,
+        trackingCode: trackingCode,
+        deliveryDays: deliveryDays || undefined,
       })
 
       message.success('وضعیت سفارش با موفقیت به‌روزرسانی شد')
@@ -146,10 +153,10 @@ function OrderDetail() {
 
   const getStatusLabel = (orderStatus) => {
     const labels = {
-      Pending: 'در انتظار',
-      Processing: 'در دست بررسی',
-      Shipped: 'ارسال شده',
-      Delivered: 'تحویل داده شده',
+      Pending: 'ثبت سفارش',
+      Processing: 'درحال پردازش',
+      Shipped: 'تحویل به پست',
+      Delivered: 'تحویل شده',
       Cancelled: 'لغو شده',
     }
     return labels[orderStatus] || orderStatus
@@ -301,6 +308,11 @@ function OrderDetail() {
                   <Descriptions.Item label="روش پرداخت" span={2}>
                     {order.paymentMethod || '—'}
                   </Descriptions.Item>
+                  {order.trackingCode && (
+                    <Descriptions.Item label="کد رهگیری پستی" span={2}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{order.trackingCode}</span>
+                    </Descriptions.Item>
+                  )}
                 </Descriptions>
 
                 <Divider>اطلاعات مشتری و آدرس</Divider>
@@ -362,13 +374,74 @@ function OrderDetail() {
                     style={{ width: '100%' }}
                     size="large"
                   >
-                    <Select.Option value="Pending">در انتظار</Select.Option>
-                    <Select.Option value="Processing">در دست بررسی</Select.Option>
-                    <Select.Option value="Shipped">ارسال شده</Select.Option>
-                    <Select.Option value="Delivered">تحویل داده شده</Select.Option>
+                    <Select.Option value="Pending">ثبت سفارش</Select.Option>
+                    <Select.Option value="Processing">درحال پردازش</Select.Option>
+                    <Select.Option value="Shipped">تحویل به پست</Select.Option>
+                    <Select.Option value="Delivered">تحویل شده</Select.Option>
                     <Select.Option value="Cancelled">لغو شده</Select.Option>
                   </Select>
                 </div>
+
+                {status === 'Shipped' && (
+                  <>
+                    <div>
+                      <label
+                        style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}
+                      >
+                        کد رهگیری پستی:
+                      </label>
+                      <Input
+                        value={trackingCode}
+                        onChange={(e) => setTrackingCode(e.target.value)}
+                        placeholder="کد ۲۴ رقمی پست"
+                        style={{ fontFamily: 'monospace' }}
+                      />
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <label
+                        style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}
+                      >
+                        زمان تقریبی تحویل (روز):
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="مثلاً ۳ روز"
+                        onChange={(e) => setDeliveryDays(e.target.value)}
+                        suffix="روز"
+                      />
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                        پس از گذشت این زمان، وضعیت سفارش به صورت خودکار به «تحویل شده» تغییر می‌کند.
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {order?.autoCompleteAt && order?.orderStatus === 'Shipped' && (
+                  <Alert
+                    message="تایمر تکمیل خودکار"
+                    description={
+                      <div style={{ direction: 'ltr', textAlign: 'right' }}>
+                        <Countdown
+                          date={new Date(order.autoCompleteAt)}
+                          renderer={({ days, hours, minutes, seconds, completed }) => {
+                            if (completed) return <span>در حال تکمیل...</span>
+                            return (
+                              <span style={{ fontWeight: 'bold', fontSize: '1.1em', color: '#1890ff' }}>
+                                {days} روز : {hours} ساعت : {minutes} دقیقه : {seconds} ثانیه
+                              </span>
+                            )
+                          }}
+                        />
+                        <div style={{ fontSize: 12, marginTop: 4 }}>تا تغییر وضعیت خودکار به «تحویل شده»</div>
+                      </div>
+                    }
+                    type="info"
+                    showIcon
+                    style={{ marginTop: 16 }}
+                  />
+                )}
 
                 <div>
                   <label

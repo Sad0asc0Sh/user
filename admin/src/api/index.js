@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../stores'
 
 // Base URL can be overridden via Vite env (VITE_API_BASE_URL)
-const baseURL = (import.meta?.env?.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '')
+const baseURL = (import.meta?.env?.VITE_API_BASE_URL || 'http://127.0.0.1:5000/api').replace(/\/$/, '')
 
 // Create a shared axios instance
 export const api = axios.create({
@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`
       }
     }
-  } catch (_) {}
+  } catch (_) { }
   return config
 })
 
@@ -35,8 +35,6 @@ api.interceptors.response.use(
   (error) => {
     const status = error?.response?.status
     const url = error?.config?.url || ''
-    const messageText =
-      error?.response?.data?.message || error?.message || 'Request failed'
 
     const isLoginEndpoint =
       url.endsWith('/auth/login') || url.endsWith('/auth/admin/login')
@@ -56,7 +54,9 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(new Error(messageText))
+    // برگرداندن خطای اصلی axios به جای Error جدید
+    // این اجازه می‌دهد که err.response.data.message در catch قابل دسترس باشد
+    return Promise.reject(error)
   },
 )
 

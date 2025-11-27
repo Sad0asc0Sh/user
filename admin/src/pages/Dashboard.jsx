@@ -30,6 +30,8 @@ function Dashboard() {
     recentOrders: [],
     salesChart: [],
     openTickets: 0,
+    salesGrowth: 0,
+    averageOrderValue: 0,
   })
 
   const orderColumns = [
@@ -86,6 +88,8 @@ function Dashboard() {
         recentOrders: data.recentOrders || [],
         salesChart: data.salesChart || [],
         openTickets: data.openTickets || 0,
+        salesGrowth: data.salesGrowth || 0,
+        averageOrderValue: data.averageOrderValue || 0,
       })
     } catch (err) {
       // در صورت خطا، مقادیر فعلی را حفظ می‌کنیم
@@ -107,11 +111,26 @@ function Dashboard() {
         <Col xs={24} sm={12} lg={6}>
           <Card loading={loading}>
             <Statistic
-              title="مجموع فروش (همه زمان‌ها)"
+              title="مجموع فروش"
               value={stats.totalSales}
               precision={0}
               valueStyle={{ color: '#3f8600' }}
               prefix={<DollarOutlined />}
+              suffix="تومان"
+            />
+            <div style={{ marginTop: 8, fontSize: 12, color: stats.salesGrowth >= 0 ? 'green' : 'red' }}>
+              {stats.salesGrowth > 0 ? '+' : ''}{stats.salesGrowth}% نسبت به هفته قبل
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading}>
+            <Statistic
+              title="میانگین ارزش سفارش (AOV)"
+              value={stats.averageOrderValue}
+              precision={0}
+              valueStyle={{ color: '#722ed1' }}
               suffix="تومان"
             />
           </Card>

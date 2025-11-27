@@ -98,7 +98,7 @@ function MainLayout({ children }) {
       label: 'مشتریان',
       children: [
         {
-          key: '/customers',
+          key: '/customers-list',
           label: <Link to="/customers">لیست مشتریان</Link>,
         },
       ],
@@ -167,27 +167,31 @@ function MainLayout({ children }) {
           key: '/reports/customers',
           label: <Link to="/reports/customers">گزارش مشتریان</Link>,
         },
+        {
+          key: '/reports/audit-logs',
+          label: <Link to="/reports/audit-logs">گزارش عملکرد سیستم</Link>,
+        },
       ],
     },
     // Settings - Only for manager and superadmin
     ...(isManagerOrSuperAdmin
       ? [
-          {
-            key: '/settings',
-            icon: <SettingOutlined />,
-            label: <Link to="/settings">تنظیمات</Link>,
-          },
-        ]
+        {
+          key: '/settings',
+          icon: <SettingOutlined />,
+          label: <Link to="/settings">تنظیمات</Link>,
+        },
+      ]
       : []),
     // Admins Management - Only for superadmin
     ...(isSuperAdmin
       ? [
-          {
-            key: '/admins',
-            icon: <TeamOutlined />,
-            label: <Link to="/admins">مدیریت ادمین‌ها</Link>,
-          },
-        ]
+        {
+          key: '/admins',
+          icon: <TeamOutlined />,
+          label: <Link to="/admins">مدیریت ادمین‌ها</Link>,
+        },
+      ]
       : []),
   ]
 
@@ -269,9 +273,7 @@ function MainLayout({ children }) {
   }
 
   const handleUserMenuClick = ({ key }) => {
-    if (key === 'profile') {
-      setProfileModalOpen(true)
-    } else if (key === 'logout') {
+    if (key === 'logout') {
       logout()
     }
   }
@@ -281,17 +283,17 @@ function MainLayout({ children }) {
       {
         key: 'profile',
         icon: <UserOutlined />,
-        label: 'پروفایل کاربر',
+        label: <Link to="/profile">اطلاعات حساب کاربری</Link>,
       },
       // Settings - Only for manager and superadmin
       ...(isManagerOrSuperAdmin
         ? [
-            {
-              key: 'settings',
-              icon: <SettingOutlined />,
-              label: <Link to="/settings">تنظیمات</Link>,
-            },
-          ]
+          {
+            key: 'settings',
+            icon: <SettingOutlined />,
+            label: <Link to="/settings">تنظیمات</Link>,
+          },
+        ]
         : []),
       { type: 'divider' },
       {

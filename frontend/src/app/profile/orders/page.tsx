@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Box, Clock, CheckCircle2, XCircle, Truck, AlertCircle, Search, RefreshCcw, Filter } from "lucide-react";
 import { authService } from "@/services/authService";
 
@@ -18,11 +18,20 @@ type TabType = 'current' | 'delivered' | 'returned' | 'cancelled';
 
 export default function OrdersPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const statusParam = searchParams.get('status');
+
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<TabType>('current');
+    const [activeTab, setActiveTab] = useState<TabType>((statusParam as TabType) || 'current');
     const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        if (statusParam && ['current', 'delivered', 'returned', 'cancelled'].includes(statusParam)) {
+            setActiveTab(statusParam as TabType);
+        }
+    }, [statusParam]);
 
     useEffect(() => {
         loadOrders();
@@ -46,11 +55,11 @@ export default function OrdersPage() {
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'Pending':
-                return { label: 'در انتظار پرداخت', color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock };
+                return { label: 'ثبت سفارش', color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Clock };
             case 'Processing':
-                return { label: 'در حال پردازش', color: 'text-blue-600', bg: 'bg-blue-50', icon: Box };
+                return { label: 'درحال پردازش', color: 'text-blue-600', bg: 'bg-blue-50', icon: Box };
             case 'Shipped':
-                return { label: 'ارسال شده', color: 'text-purple-600', bg: 'bg-purple-50', icon: Truck };
+                return { label: 'تحویل به پست', color: 'text-purple-600', bg: 'bg-purple-50', icon: Truck };
             case 'Delivered':
                 return { label: 'تحویل شده', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle2 };
             case 'Cancelled':
@@ -149,8 +158,8 @@ export default function OrdersPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as TabType)}
                             className={`flex items-center gap-2 px-4 py-4 border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
-                                    ? "border-vita-600 text-vita-600 font-bold"
-                                    : "border-transparent text-gray-500 font-medium hover:text-gray-700"
+                                ? "border-vita-600 text-vita-600 font-bold"
+                                : "border-transparent text-gray-500 font-medium hover:text-gray-700"
                                 }`}
                         >
                             <span className="text-sm">{tab.label}</span>

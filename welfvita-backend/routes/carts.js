@@ -10,8 +10,11 @@ const {
   addOrUpdateItem,
   removeItem,
   clearCart,
+  deleteCartByAdmin,
+  cleanupExpiredCarts,
+  sendExpiryWarnings,
 } = require('../controllers/cartController')
-const { protect, authorize } = require('../middleware/auth')
+const { protect, authorize} = require('../middleware/auth')
 
 // ============================================
 // GET /api/carts/admin/abandoned - دریافت سبدهای رها شده
@@ -55,6 +58,39 @@ router.post(
   protect,
   authorize('admin', 'manager', 'superadmin'),
   sendSmsReminder,
+)
+
+// ============================================
+// DELETE /api/carts/admin/:cartId - حذف دستی سبد خرید
+// فقط برای ادمین
+// ============================================
+router.delete(
+  '/admin/:cartId',
+  protect,
+  authorize('admin', 'manager', 'superadmin'),
+  deleteCartByAdmin,
+)
+
+// ============================================
+// POST /api/carts/admin/cleanup - پاکسازی سبدهای منقضی شده
+// فقط برای ادمین
+// ============================================
+router.post(
+  '/admin/cleanup',
+  protect,
+  authorize('admin', 'manager', 'superadmin'),
+  cleanupExpiredCarts,
+)
+
+// ============================================
+// POST /api/carts/admin/send-warnings - ارسال هشدارهای انقضا
+// فقط برای ادمین
+// ============================================
+router.post(
+  '/admin/send-warnings',
+  protect,
+  authorize('admin', 'manager', 'superadmin'),
+  sendExpiryWarnings,
 )
 
 // ============================================

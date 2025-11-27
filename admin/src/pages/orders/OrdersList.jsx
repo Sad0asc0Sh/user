@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import jalaliday from 'jalaliday'
 import api from '../../api'
+import Countdown from 'react-countdown'
 
 // فعال‌سازی تقویم جلالی
 dayjs.extend(jalaliday)
@@ -110,10 +111,10 @@ function OrdersList() {
 
   const getStatusLabel = (status) => {
     const labels = {
-      Pending: 'در انتظار',
-      Processing: 'در حال پردازش',
-      Shipped: 'ارسال شده',
-      Delivered: 'تحویل داده شده',
+      Pending: 'ثبت سفارش',
+      Processing: 'درحال پردازش',
+      Shipped: 'تحویل به پست',
+      Delivered: 'تحویل شده',
       Cancelled: 'لغو شده',
     }
     return labels[status] || status
@@ -173,8 +174,21 @@ function OrdersList() {
       dataIndex: 'orderStatus',
       key: 'orderStatus',
       width: 150,
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+      render: (status, record) => (
+        <Space direction="vertical" size={0}>
+          <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+          {status === 'Shipped' && record.autoCompleteAt && (
+            <div style={{ fontSize: '0.75em', color: '#1890ff', marginTop: 4 }}>
+              <Countdown
+                date={new Date(record.autoCompleteAt)}
+                renderer={({ days, hours, minutes, completed }) => {
+                  if (completed) return <span style={{ color: 'green' }}>تکمیل شد</span>
+                  return <span>{days} روز {hours} ساعت</span>
+                }}
+              />
+            </div>
+          )}
+        </Space>
       ),
     },
     {
@@ -254,10 +268,10 @@ function OrdersList() {
             setFilters((prev) => ({ ...prev, orderStatus: value || null }))
           }
         >
-          <Select.Option value="Pending">در انتظار</Select.Option>
-          <Select.Option value="Processing">در حال پردازش</Select.Option>
-          <Select.Option value="Shipped">ارسال شده</Select.Option>
-          <Select.Option value="Delivered">تحویل داده شده</Select.Option>
+          <Select.Option value="Pending">ثبت سفارش</Select.Option>
+          <Select.Option value="Processing">درحال پردازش</Select.Option>
+          <Select.Option value="Shipped">تحویل به پست</Select.Option>
+          <Select.Option value="Delivered">تحویل شده</Select.Option>
           <Select.Option value="Cancelled">لغو شده</Select.Option>
         </Select>
         <Select

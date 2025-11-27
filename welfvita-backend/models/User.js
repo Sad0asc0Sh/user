@@ -82,18 +82,78 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Personal Info
+    nationalCode: {
+      type: String,
+      trim: true,
+      match: [/^\d{10}$/, 'کد ملی باید ۱۰ رقم باشد'],
+    },
+    birthDate: {
+      type: Date,
+    },
+    landline: {
+      type: String,
+      trim: true,
+    },
+    shebaNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      match: [/^IR\d{24}$/, 'شماره شبا نامعتبر است (باید با IR شروع شود و ۲۶ کاراکتر باشد)'],
+    },
+
+    // Location (Default/Main)
+    province: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+
+    // Legal Entity Info
+    isLegal: {
+      type: Boolean,
+      default: false,
+    },
+    companyName: {
+      type: String,
+      trim: true,
+    },
+    companyNationalId: {
+      type: String, // شناسه ملی
+      trim: true,
+    },
+    companyRegistrationId: {
+      type: String, // شماره ثبت
+      trim: true,
+    },
+    companyLandline: {
+      type: String,
+      trim: true,
+    },
+    companyProvince: {
+      type: String,
+      trim: true,
+    },
+    companyCity: {
+      type: String,
+      trim: true,
+    },
+
     // Addresses
     addresses: [
       {
         title: String,
         fullName: String,
         mobile: String,
-        nationalCode: String, // NEW
+        nationalCode: String,
         province: String,
         city: String,
         address: String,
-        plaque: String, // NEW
-        unit: String, // NEW
+        plaque: String,
+        unit: String,
         postalCode: String,
         isDefault: {
           type: Boolean,

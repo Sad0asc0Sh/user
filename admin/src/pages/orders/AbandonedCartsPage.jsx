@@ -14,6 +14,7 @@ import {
   Modal,
   Descriptions,
   Image,
+  Progress,
 } from 'antd'
 import {
   ReloadOutlined,
@@ -23,6 +24,10 @@ import {
   ClockCircleOutlined,
   EyeOutlined,
   MessageOutlined,
+  DeleteOutlined,
+  ClearOutlined,
+  WarningOutlined,
+  FireOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import jalaliday from 'jalaliday'
@@ -67,12 +72,32 @@ function AbandonedCartsPage() {
   const [carts, setCarts] = useState([])
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState(null)
-  const [hoursAgo, setHoursAgo] = useState(1)
+  const [hoursAgo, setHoursAgo] = useState(0)
   const [daysAgo, setDaysAgo] = useState(7)
+  const [lastRefreshTime, setLastRefreshTime] = useState(null)
+  const [settings, setSettings] = useState(null) // تنظیمات سبد خرید
 
   // Modal جزئیات
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedCart, setSelectedCart] = useState(null)
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings')
+      const data = res?.data?.data
+      setSettings(data)
+    } catch (err) {
+      console.error('Failed to fetch settings:', err)
+      // استفاده از مقادیر پیش‌فرض در صورت خطا
+      setSettings({
+        cartSettings: {
+          cartTTLHours: 1,
+          expiryWarningMinutes: 30,
+          permanentCart: false,
+        },
+      })
+    }
+  }
 
   const fetchAbandonedCarts = async () => {
     setLoading(true)
@@ -87,6 +112,7 @@ function AbandonedCartsPage() {
 
       setCarts(data)
       setStats(statsData)
+      setLastRefreshTime(new Date())
     } catch (err) {
       const errorMsg =
         err?.response?.data?.message || err?.message || 'خطا در دریافت سبدهای رها شده'
@@ -98,7 +124,18 @@ function AbandonedCartsPage() {
   }
 
   useEffect(() => {
+    fetchSettings()
     fetchAbandonedCarts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoursAgo, daysAgo])
+
+  // Auto-refresh every minute to update countdown timers
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAbandonedCarts()
+    }, 60000) // 60 seconds
+
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoursAgo, daysAgo])
 
@@ -116,6 +153,90 @@ function AbandonedCartsPage() {
       return `${diffInHours} ساعت پیش`
     } else {
       return `${diffInMinutes} دقیقه پیش`
+    }
+  }
+
+  // محاسبه زمان باقی‌مانده تا انقضا
+  const getTimeRemaining = (expiresAt) => {
+    if (!expiresAt) return null
+
+    const now = new Date()
+    const expiry = new Date(expiresAt)
+    const diffInMs = expiry - now
+
+    // اگر منقضی شده
+    if (diffInMs <= 0) {
+      return { expired: true, text: 'منقضی شده', minutes: 0, total: 0 }
+    }
+
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+
+    let text = ''
+    if (diffInDays > 0) {
+      const remainingHours = diffInHours % 24
+      text = `${diffInDays} روز${remainingHours > 0 ? ` و ${remainingHours} ساعت` : ''}`
+    } else if (diffInHours > 0) {
+      const remainingMinutes = diffInMinutes % 60
+      text = `${diffInHours} ساعت${remainingMinutes > 0 ? ` و ${remainingMinutes} دقیقه` : ''}`
+    } else {
+      text = `${diffInMinutes} دقیقه`
+    }
+
+    return {
+      expired: false,
+      text,
+      minutes: diffInMinutes,
+      total: diffInMinutes,
+    }
+  }
+
+  // محاسبه درصد پیشرفت برای Progress Bar
+  const getExpiryProgress = (cart) => {
+    const remaining = getTimeRemaining(cart.expiresAt)
+    if (!remaining || remaining.expired) return { percent: 100, status: 'exception' }
+
+    // محاسبه زمان سپری شده از updatedAt تا الان
+    const now = new Date()
+    const updated = new Date(cart.updatedAt)
+    const expiry = new Date(cart.expiresAt)
+    const totalDuration = expiry - updated
+    const elapsed = now - updated
+
+    const percent = Math.min(100, Math.floor((elapsed / totalDuration) * 100))
+
+    // تعیین وضعیت بر اساس زمان باقیمانده و تنظیمات
+    const warningMinutes = settings?.cartSettings?.expiryWarningMinutes || 30
+    const urgentThreshold = Math.floor(warningMinutes / 2) // نصف زمان هشدار
+
+    let status = 'success'
+    if (remaining.minutes <= urgentThreshold) {
+      status = 'exception' // قرمز - فوری
+    } else if (remaining.minutes <= warningMinutes) {
+      status = 'normal' // نارنجی - متوسط
+    }
+
+    return { percent, status }
+  }
+
+  // آیکون و رنگ بر اساس فوریت
+  const getUrgencyIcon = (cart) => {
+    const remaining = getTimeRemaining(cart.expiresAt)
+    if (!remaining || remaining.expired) {
+      return { icon: <ClockCircleOutlined />, color: '#999' }
+    }
+
+    // استفاده از تنظیمات برای تعیین آستانه فوریت
+    const warningMinutes = settings?.cartSettings?.expiryWarningMinutes || 30
+    const urgentThreshold = Math.floor(warningMinutes / 2) // نصف زمان هشدار
+
+    if (remaining.minutes <= urgentThreshold) {
+      return { icon: <FireOutlined />, color: '#ff4d4f' } // قرمز - فوری
+    } else if (remaining.minutes <= warningMinutes) {
+      return { icon: <WarningOutlined />, color: '#fa8c16' } // نارنجی - متوسط
+    } else {
+      return { icon: <ClockCircleOutlined />, color: '#52c41a' } // سبز - عادی
     }
   }
 
@@ -152,6 +273,49 @@ function AbandonedCartsPage() {
           const errorMsg = err?.response?.data?.message || 'خطا در ارسال پیامک'
           message.error(errorMsg)
           console.error('SMS reminder error:', err)
+        }
+      },
+    })
+  }
+
+  const handleDeleteCart = async (cart) => {
+    Modal.confirm({
+      title: 'حذف سبد خرید',
+      content: `آیا مطمئن هستید که می‌خواهید سبد خرید ${cart.user?.name || 'این کاربر'} را حذف کنید؟`,
+      okText: 'حذف',
+      cancelText: 'لغو',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await api.delete(`/carts/admin/${cart._id}`)
+          message.success('سبد خرید با موفقیت حذف شد')
+          fetchAbandonedCarts()
+        } catch (err) {
+          const errorMsg = err?.response?.data?.message || 'خطا در حذف سبد خرید'
+          message.error(errorMsg)
+          console.error('Delete cart error:', err)
+        }
+      },
+    })
+  }
+
+  const handleCleanupExpired = async () => {
+    Modal.confirm({
+      title: 'پاکسازی سبدهای منقضی شده',
+      content: 'آیا می‌خواهید تمام سبدهای خریدی که زمان انقضای آنها گذشته است را پاکسازی کنید؟',
+      okText: 'پاکسازی',
+      cancelText: 'لغو',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          const res = await api.post('/carts/admin/cleanup')
+          const count = res?.data?.count || 0
+          message.success(`${count} سبد خرید منقضی شده پاکسازی شد`)
+          fetchAbandonedCarts()
+        } catch (err) {
+          const errorMsg = err?.response?.data?.message || 'خطا در پاکسازی سبدها'
+          message.error(errorMsg)
+          console.error('Cleanup error:', err)
         }
       },
     })
@@ -216,9 +380,62 @@ function AbandonedCartsPage() {
       ),
     },
     {
+      title: 'زمان باقیمانده تا انقضا',
+      key: 'expiresAt',
+      width: 220,
+      render: (_, record) => {
+        const remaining = getTimeRemaining(record.expiresAt)
+        const progress = getExpiryProgress(record)
+        const urgency = getUrgencyIcon(record)
+
+        if (!remaining) {
+          return (
+            <Tag color="blue">
+              سبد ماندگار
+            </Tag>
+          )
+        }
+
+        if (remaining.expired) {
+          return (
+            <div>
+              <Tag icon={<ClockCircleOutlined />} color="default">
+                منقضی شده
+              </Tag>
+              <Progress
+                percent={100}
+                status="exception"
+                size="small"
+                showInfo={false}
+                style={{ marginTop: 4 }}
+              />
+            </div>
+          )
+        }
+
+        return (
+          <div>
+            <Tooltip title={`انقضا در: ${formatPersianDate(record.expiresAt, true)}`}>
+              <Tag icon={urgency.icon} color={urgency.color === '#ff4d4f' ? 'error' : urgency.color === '#fa8c16' ? 'warning' : 'success'}>
+                {remaining.text}
+              </Tag>
+            </Tooltip>
+            <Progress
+              percent={progress.percent}
+              status={progress.status}
+              size="small"
+              showInfo={false}
+              style={{ marginTop: 4 }}
+              strokeColor={urgency.color}
+            />
+          </div>
+        )
+      },
+    },
+    {
       title: 'عملیات',
       key: 'actions',
-      width: 280,
+      width: 350,
       align: 'center',
       render: (_, record) => (
         <Space size="small" wrap>
@@ -247,6 +464,15 @@ function AbandonedCartsPage() {
           >
             پیامک
           </Button>
+          <Button
+            danger
+            type="primary"
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteCart(record)}
+          >
+            حذف
+          </Button>
         </Space>
       ),
     },
@@ -260,12 +486,39 @@ function AbandonedCartsPage() {
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: 16,
+          flexWrap: 'wrap',
+          gap: 8,
         }}
       >
-        <h1>سبدهای رها شده</h1>
-        <Button icon={<ReloadOutlined />} onClick={fetchAbandonedCarts}>
-          بارگذاری مجدد
-        </Button>
+        <div>
+          <h1 style={{ marginBottom: 4 }}>سبدهای رها شده</h1>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            {lastRefreshTime && (
+              <div style={{ fontSize: '12px', color: '#999' }}>
+                <ClockCircleOutlined style={{ marginLeft: 4 }} />
+                آخرین به‌روزرسانی: {lastRefreshTime.toLocaleTimeString('fa-IR')}
+                <span style={{ marginRight: 8, color: '#52c41a' }}>
+                  • به‌روزرسانی خودکار هر 1 دقیقه
+                </span>
+              </div>
+            )}
+            {settings?.cartSettings && (
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                🔥 فوری: کمتر از {Math.floor((settings.cartSettings.expiryWarningMinutes || 30) / 2)} دقیقه
+                <span style={{ marginRight: 8 }}>|</span>
+                ⚠️  متوسط: کمتر از {settings.cartSettings.expiryWarningMinutes || 30} دقیقه
+              </div>
+            )}
+          </div>
+        </div>
+        <Space>
+          <Button danger type="primary" icon={<ClearOutlined />} onClick={handleCleanupExpired}>
+            پاکسازی منقضی‌ها
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchAbandonedCarts}>
+            بارگذاری مجدد
+          </Button>
+        </Space>
       </div>
 
       {/* آمار */}
@@ -323,6 +576,7 @@ function AbandonedCartsPage() {
             onChange={setHoursAgo}
             style={{ width: 150 }}
           >
+            <Select.Option value={0}>هم‌اکنون (همه)</Select.Option>
             <Select.Option value={1}>1 ساعت</Select.Option>
             <Select.Option value={2}>2 ساعت</Select.Option>
             <Select.Option value={6}>6 ساعت</Select.Option>
@@ -432,6 +686,76 @@ function AbandonedCartsPage() {
                 </Descriptions.Item>
               </Descriptions>
             </div>
+
+            {/* وضعیت انقضا */}
+            {selectedCart.expiresAt && (
+              <div>
+                <h3>وضعیت انقضای سبد</h3>
+                <Card style={{ background: '#fff7e6', borderColor: '#ffa940' }}>
+                  {(() => {
+                    const remaining = getTimeRemaining(selectedCart.expiresAt)
+                    const progress = getExpiryProgress(selectedCart)
+                    const urgency = getUrgencyIcon(selectedCart)
+
+                    if (!remaining) {
+                      return (
+                        <div style={{ textAlign: 'center' }}>
+                          <Tag color="blue" style={{ fontSize: '14px', padding: '8px 16px' }}>
+                            این سبد ماندگار است و منقضی نمی‌شود
+                          </Tag>
+                        </div>
+                      )
+                    }
+
+                    if (remaining.expired) {
+                      return (
+                        <div>
+                          <div style={{ marginBottom: 12 }}>
+                            <Tag icon={<ClockCircleOutlined />} color="default" style={{ fontSize: '14px', padding: '8px 16px' }}>
+                              این سبد منقضی شده است
+                            </Tag>
+                          </div>
+                          <Progress percent={100} status="exception" />
+                          <div style={{ marginTop: 8, fontSize: '12px', color: '#999' }}>
+                            زمان انقضا: {formatPersianDate(selectedCart.expiresAt, true)}
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div>
+                        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '16px' }}>{urgency.icon}</span>
+                          <span style={{ fontWeight: 'bold', color: urgency.color, fontSize: '16px' }}>
+                            {remaining.text} تا انقضا
+                          </span>
+                        </div>
+                        <Progress
+                          percent={progress.percent}
+                          status={progress.status}
+                          strokeColor={urgency.color}
+                        />
+                        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+                          <div>
+                            <strong>آخرین به‌روزرسانی:</strong> {formatPersianDate(selectedCart.updatedAt, true)}
+                          </div>
+                          <div>
+                            <strong>زمان انقضا:</strong> {formatPersianDate(selectedCart.expiresAt, true)}
+                          </div>
+                        </div>
+                        {remaining.minutes <= (settings?.cartSettings?.expiryWarningMinutes || 30) && (
+                          <div style={{ marginTop: 12, padding: '8px 12px', background: '#fff1f0', border: '1px solid #ffccc7', borderRadius: 4 }}>
+                            <WarningOutlined style={{ color: '#ff4d4f', marginLeft: 8 }} />
+                            <strong>توجه:</strong> این سبد به زودی منقضی می‌شود! برای جلوگیری از از دست رفتن فرصت فروش، یادآوری ارسال کنید.
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </Card>
+              </div>
+            )}
 
             {/* آیتم‌های سبد */}
             <div>

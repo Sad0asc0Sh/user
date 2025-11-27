@@ -1,6 +1,31 @@
+const mongoose = require('mongoose')
 const Cart = require('../models/Cart')
 const Product = require('../models/Product')
+const Settings = require('../models/Settings')
 const { sendReminderEmail, sendReminderSMS } = require('../utils/notificationService')
+
+// Helper function to get cart settings
+async function getCartSettings() {
+  try {
+    const settings = await Settings.findOne({ singletonKey: 'main_settings' })
+    return {
+      ttlHours: settings?.cartSettings?.cartTTLHours || 1,
+      autoExpireEnabled: settings?.cartSettings?.autoExpireEnabled !== false,
+      permanentCart: settings?.cartSettings?.permanentCart || false,
+      expiryWarningEnabled: settings?.cartSettings?.expiryWarningEnabled || false,
+      expiryWarningMinutes: settings?.cartSettings?.expiryWarningMinutes || 30,
+    }
+  } catch (error) {
+    console.error('Error fetching cart settings:', error)
+    return {
+      ttlHours: 1,
+      autoExpireEnabled: true,
+      permanentCart: false,
+      expiryWarningEnabled: false,
+      expiryWarningMinutes: 30,
+    }
+  }
+}
 
 // ============================================
 // GET /api/carts/admin/abandoned - دریافت سبدهای رها شده
@@ -9,12 +34,19 @@ const { sendReminderEmail, sendReminderSMS } = require('../utils/notificationSer
 exports.getAbandonedCarts = async (req, res) => {
   try {
     // پارامترهای زمانی قابل تنظیم
-    const hoursAgo = parseInt(req.query.hoursAgo, 10) || 1 // پیش‌فرض: 1 ساعت
+    let hoursAgo = 1
+    if (req.query.hoursAgo !== undefined && req.query.hoursAgo !== null && req.query.hoursAgo !== '') {
+      hoursAgo = parseInt(req.query.hoursAgo, 10)
+    }
+
     const daysAgo = parseInt(req.query.daysAgo, 10) || 7 // پیش‌فرض: 7 روز
 
     // محاسبه تاریخ‌ها
     const minTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
     const maxTime = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
+
+    console.log('[ABANDONED] Request params:', { hoursAgo, daysAgo })
+    console.log('[ABANDONED] Time range:', { minTime, maxTime })
 
     // پیدا کردن سبدهای رها شده
     // سبدهایی که:
@@ -24,17 +56,26 @@ exports.getAbandonedCarts = async (req, res) => {
     const filter = {
       status: 'active',
       updatedAt: {
-        $lte: minTime, // کمتر یا مساوی با زمان حداقل (قدیمی‌تر از 1 ساعت)
         $gte: maxTime, // بیشتر یا مساوی با زمان حداکثر (جدیدتر از 7 روز)
       },
-      'items.0': { $exists: true }, // حداقل یک آیتم داشته باشد
+      items: { $exists: true, $not: { $size: 0 } }, // حداقل یک آیتم داشته باشد
     }
+
+    // اگر hoursAgo > 0 باشد، یعنی می‌خواهیم سبدهای "تازه" را فیلتر کنیم
+    // مثلاً سبدهایی که حداقل 1 ساعت از آخرین تغییرشان گذشته باشد
+    if (hoursAgo > 0) {
+      filter.updatedAt.$lte = minTime
+    }
+
+    console.log('[ABANDONED] Filter:', JSON.stringify(filter, null, 2))
 
     const carts = await Cart.find(filter)
       .populate('user', 'name email phone')
       .populate('items.product', 'name images sku price')
       .sort({ updatedAt: -1 })
       .lean()
+
+    console.log(`[ABANDONED] Found ${carts.length} carts`)
 
     // محاسبه آمار
     const totalItems = carts.reduce((sum, cart) => {
@@ -364,39 +405,103 @@ exports.syncCart = async (req, res) => {
 // ============================================
 // POST /api/cart/item - افزودن/به‌روزرسانی آیتم
 // ============================================
+// ============================================
+// POST /api/cart/item - افزودن/به‌روزرسانی آیتم
+// ============================================
 exports.addOrUpdateItem = async (req, res) => {
   try {
+    console.log('[CART] Add/Update Item Request:', req.body)
+
     const { product: productId, quantity, variantOptions } = req.body
+
+    if (!req.user || !req.user._id) {
+      console.error('[CART] User not found in request')
+      return res.status(401).json({
+        success: false,
+        message: 'کاربر احراز هویت نشده است',
+      })
+    }
+
     const userId = req.user._id
+    console.log('[CART] User ID:', userId)
 
     if (!productId || !quantity || quantity < 1) {
+      console.error('[CART] Invalid input:', { productId, quantity })
       return res.status(400).json({
         success: false,
         message: 'اطلاعات محصول نامعتبر است',
       })
     }
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      console.error('[CART] Invalid Product ID format:', productId)
+      return res.status(400).json({
+        success: false,
+        message: 'شناسه محصول نامعتبر است',
+      })
+    }
+
     // اعتبارسنجی محصول
     const product = await Product.findById(productId)
     if (!product) {
+      console.error('[CART] Product not found:', productId)
       return res.status(404).json({
         success: false,
         message: 'محصول یافت نشد',
       })
     }
 
+    console.log('[CART] Product found:', product.name)
+
+    // تعیین قیمت محصول
+    let finalPrice = product.price
+    let finalImage = product.images && product.images[0] ?
+      (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) :
+      null
+
+    // اگر محصول متغیر است، قیمت را از واریانت پیدا کن
+    if (product.productType === 'variable' && Array.isArray(variantOptions) && variantOptions.length > 0) {
+      const matchingVariant = product.variants.find(variant => {
+        // بررسی تطابق همه گزینه‌ها
+        return variant.options.every(opt =>
+          variantOptions.some(vo =>
+            vo.name === opt.name && vo.value === opt.value
+          )
+        )
+      })
+
+      if (matchingVariant) {
+        finalPrice = matchingVariant.price
+        // اگر واریانت تصویر دارد، از آن استفاده کن
+        if (matchingVariant.images && matchingVariant.images.length > 0) {
+          finalImage = matchingVariant.images[0].url || matchingVariant.images[0]
+        }
+      }
+    }
+
+    // اگر قیمت هنوز مشخص نیست (مثلاً محصول متغیر بدون انتخاب واریانت صحیح)، خطا بده
+    if (finalPrice === undefined || finalPrice === null) {
+      console.warn('[CART] Price is undefined, defaulting to 0. Product:', product._id)
+      // Fallback to product price if available, otherwise 0 (but 0 might be wrong)
+      finalPrice = product.price || 0
+    }
+
+    console.log('[CART] Final Price:', finalPrice)
+
     // پیدا کردن یا ایجاد سبد خرید
     let cart = await Cart.findOne({ user: userId, status: 'active' })
 
     if (!cart) {
+      console.log('[CART] Creating new cart for user')
       cart = new Cart({
         user: userId,
         items: [],
         status: 'active',
       })
+    } else {
+      console.log('[CART] Found existing cart:', cart._id)
     }
 
-    // پیدا کردن آیتم در سبد - با در نظر گرفتن variantOptions
     // پیدا کردن آیتم در سبد - با در نظر گرفتن variantOptions
     const existingItemIndex = cart.items.findIndex((item) => {
       // بررسی product ID
@@ -422,24 +527,43 @@ exports.addOrUpdateItem = async (req, res) => {
     if (existingItemIndex > -1) {
       // به‌روزرسانی تعداد
       cart.items[existingItemIndex].quantity = quantity
-      cart.items[existingItemIndex].price = product.price
+      cart.items[existingItemIndex].price = finalPrice
     } else {
       // افزودن آیتم جدید
       cart.items.push({
         product: product._id,
         name: product.name,
-        price: product.price,
+        price: finalPrice,
         quantity,
-        image: product.images && product.images[0] ?
-          (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) :
-          null,
+        image: finalImage,
         variantOptions: variantOptions || [],
       })
     }
 
     // محاسبه و ذخیره
+    console.log('[CART] Calculating total...')
     cart.calculateTotal()
+    console.log('[CART] Total calculated:', cart.totalPrice)
+
+    // تنظیم زمان انقضا بر اساس تنظیمات
+    console.log('[CART] Fetching settings...')
+    const cartSettings = await getCartSettings()
+    console.log('[CART] Settings fetched:', cartSettings)
+
+    if (cartSettings.permanentCart) {
+      // سبد ماندگار - بدون انقضا
+      cart.expiresAt = null
+      cart.isExpired = false
+      cart.expiryWarningSent = false
+    } else if (cartSettings.autoExpireEnabled) {
+      // سبد با مهلت زمانی
+      cart.setExpiry(cartSettings.ttlHours)
+      cart.expiryWarningSent = false // Reset warning flag on cart update
+    }
+
+    console.log('[CART] Saving cart...')
     await cart.save()
+    console.log('[CART] Cart saved successfully')
 
     // بازگرداندن سبد populated
     const populatedCart = await Cart.findById(cart._id)
@@ -451,10 +575,12 @@ exports.addOrUpdateItem = async (req, res) => {
       data: {
         items: populatedCart.items,
         totalPrice: populatedCart.totalPrice,
+        expiresAt: cart.expiresAt,
       },
     })
   } catch (error) {
-    console.error('Error adding/updating cart item:', error)
+    console.error('[CART] Critical Error adding/updating cart item:', error)
+    console.error('[CART] Stack Trace:', error.stack)
     res.status(500).json({
       success: false,
       message: 'خطا در افزودن آیتم به سبد خرید',
@@ -581,6 +707,199 @@ exports.clearCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'خطا در پاک کردن سبد خرید',
+      error: error.message,
+    })
+  }
+}
+
+// ============================================
+// DELETE /api/carts/admin/:cartId - حذف دستی سبد خرید توسط ادمین
+// فقط برای ادمین
+// ============================================
+exports.deleteCartByAdmin = async (req, res) => {
+  try {
+    const { cartId } = req.params
+
+    console.log('[DELETE CART] Request received for cartId:', cartId)
+
+    // بررسی معتبر بودن ObjectId
+    if (!mongoose.Types.ObjectId.isValid(cartId)) {
+      console.error('[DELETE CART] Invalid ObjectId:', cartId)
+      return res.status(400).json({
+        success: false,
+        message: 'شناسه سبد خرید نامعتبر است',
+      })
+    }
+
+    // پیدا کردن و حذف سبد
+    const cart = await Cart.findByIdAndDelete(cartId)
+
+    if (!cart) {
+      console.warn('[DELETE CART] Cart not found:', cartId)
+      return res.status(404).json({
+        success: false,
+        message: 'سبد خرید یافت نشد',
+      })
+    }
+
+    console.log('[DELETE CART] Successfully deleted cart:', cartId, 'for user:', cart.user)
+
+    res.json({
+      success: true,
+      message: 'سبد خرید با موفقیت حذف شد',
+      data: {
+        deletedCartId: cartId,
+        user: cart.user,
+      },
+    })
+  } catch (error) {
+    console.error('[DELETE CART] Error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در حذف سبد خرید',
+      error: error.message,
+    })
+  }
+}
+
+// ============================================
+// POST /api/carts/admin/cleanup - پاکسازی خودکار سبدهای منقضی شده
+// فقط برای ادمین
+// ============================================
+exports.cleanupExpiredCarts = async (req, res) => {
+  try {
+    const now = new Date()
+
+    // پیدا کردن سبدهای منقضی شده
+    const expiredCarts = await Cart.find({
+      status: 'active',
+      expiresAt: { $lte: now },
+      isExpired: false,
+    })
+
+    // علامت‌گذاری به عنوان منقضی شده
+    const updatePromises = expiredCarts.map(cart => {
+      cart.isExpired = true
+      cart.items = [] // پاک کردن آیتم‌ها
+      cart.totalPrice = 0
+      return cart.save()
+    })
+
+    await Promise.all(updatePromises)
+
+    res.json({
+      success: true,
+      message: `${expiredCarts.length} سبد خرید منقضی شده پاکسازی شد`,
+      count: expiredCarts.length,
+    })
+  } catch (error) {
+    console.error('Error cleaning up expired carts:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در پاکسازی سبدهای منقضی شده',
+      error: error.message,
+    })
+  }
+}
+
+// ============================================
+// POST /api/carts/admin/send-expiry-warnings - ارسال هشدارهای انقضا
+// فقط برای ادمین - می‌تواند به صورت دستی یا cron job فراخوانی شود
+// ============================================
+exports.sendExpiryWarnings = async (req, res) => {
+  try {
+    const cartSettings = await getCartSettings()
+
+    // اگر هشدار انقضا غیرفعال است
+    if (!cartSettings.expiryWarningEnabled) {
+      return res.json({
+        success: true,
+        message: 'هشدار انقضا غیرفعال است',
+        count: 0,
+      })
+    }
+
+    const now = new Date()
+    const warningTime = new Date(now.getTime() + cartSettings.expiryWarningMinutes * 60 * 1000)
+
+    // پیدا کردن سبدهایی که نزدیک به انقضا هستند و هنوز هشدار برایشان ارسال نشده
+    const cartsNearExpiry = await Cart.find({
+      status: 'active',
+      isExpired: false,
+      expiryWarningSent: false,
+      expiresAt: {
+        $lte: warningTime,
+        $gt: now,
+      },
+    })
+      .populate('user', 'name email phone')
+      .lean()
+
+    let successCount = 0
+    const errors = []
+
+    for (const cart of cartsNearExpiry) {
+      try {
+        const user = cart.user
+        if (!user) continue
+
+        const minutesRemaining = Math.floor((new Date(cart.expiresAt) - now) / (60 * 1000))
+
+        // ارسال ایمیل
+        if (user.email) {
+          try {
+            await sendReminderEmail(user.email, {
+              userName: user.name || 'کاربر',
+              itemCount: cart.items?.length || 0,
+              totalPrice: cart.totalPrice || 0,
+              expiryMinutes: minutesRemaining,
+              isWarning: true,
+            })
+          } catch (emailErr) {
+            console.error('Error sending expiry warning email:', emailErr)
+          }
+        }
+
+        // ارسال پیامک
+        if (user.phone) {
+          try {
+            await sendReminderSMS(user.phone, {
+              userName: user.name || 'کاربر',
+              itemCount: cart.items?.length || 0,
+              expiryMinutes: minutesRemaining,
+              isWarning: true,
+            })
+          } catch (smsErr) {
+            console.error('Error sending expiry warning SMS:', smsErr)
+          }
+        }
+
+        // علامت‌گذاری به عنوان ارسال شده
+        await Cart.findByIdAndUpdate(cart._id, {
+          expiryWarningSent: true,
+        })
+
+        successCount++
+      } catch (err) {
+        errors.push({
+          cartId: cart._id,
+          error: err.message,
+        })
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `هشدار انقضا برای ${successCount} سبد خرید ارسال شد`,
+      count: successCount,
+      totalFound: cartsNearExpiry.length,
+      errors: errors.length > 0 ? errors : undefined,
+    })
+  } catch (error) {
+    console.error('Error sending expiry warnings:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در ارسال هشدارهای انقضا',
       error: error.message,
     })
   }

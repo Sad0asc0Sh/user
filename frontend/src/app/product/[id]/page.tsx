@@ -15,6 +15,8 @@ import { productService, Product, ProductColor } from "@/services/productService
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
+import { useHistoryStore } from "@/store/historyStore";
+
 export default function ProductDetailPage() {
     const params = useParams();
     const id = params.id as string;
@@ -32,6 +34,7 @@ export default function ProductDetailPage() {
 
     const { addToCart, updateQuantity, removeFromCart, itemCount, cartItems } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
+    const { addToHistory } = useHistoryStore();
 
     // Calculate quantity for the SPECIFIC selected variant
     const quantity = product ? (cartItems.find(item => {
@@ -56,6 +59,17 @@ export default function ProductDetailPage() {
                 setError(null);
                 const data = await productService.getById(id);
                 setProduct(data);
+
+                // Add to history
+                addToHistory({
+                    _id: data.id,
+                    title: data.title,
+                    price: data.price,
+                    image: data.images?.[0] || '',
+                    slug: data.slug || data.id,
+                    discount: data.discount,
+                    finalPrice: data.price
+                });
 
                 if (data.colors && data.colors.length > 0) {
                     setSelectedColor(data.colors[0]);

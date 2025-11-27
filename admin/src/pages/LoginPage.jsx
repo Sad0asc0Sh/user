@@ -25,7 +25,22 @@ function LoginPage() {
       setAuth(user, token)
       navigate('/')
     } catch (err) {
-      setError(err?.message || 'خطا در ورود')
+      console.error('Login error:', err)
+      let msg = 'خطا در ورود به سیستم'
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          msg = 'ایمیل یا رمز عبور اشتباه است'
+        } else if (err.response.data && err.response.data.message) {
+          msg = err.response.data.message
+        }
+      } else if (err.message === 'Request failed with status code 401') {
+        msg = 'ایمیل یا رمز عبور اشتباه است'
+      } else if (err.message) {
+        msg = err.message
+      }
+
+      setError(msg)
     } finally {
       setLoading(false)
     }

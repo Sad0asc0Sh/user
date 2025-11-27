@@ -157,12 +157,21 @@ app.use('/api/dashboard', dashboardRoutes)
 const reportRoutes = require('./routes/reports')
 app.use('/api/reports', reportRoutes)
 
+// Chat AI Routes
+const chatRoutes = require('./routes/chatRoutes')
+app.use('/api/chat', chatRoutes)
+
 // Admin Management Routes
 const adminManagementRoutes = require('./routes/adminManagement')
 app.use('/api/admin/management', adminManagementRoutes)
 // Settings Routes
+// Settings Routes
 const settingsRoutes = require('./routes/settings')
 app.use('/api/settings', settingsRoutes)
+
+// Audit Logs Routes
+const auditLogRoutes = require('./routes/auditLogs')
+app.use('/api/audit-logs', auditLogRoutes)
 
 // Root
 app.get('/', (req, res) => {
@@ -198,6 +207,9 @@ app.use((err, req, res, next) => {
 // ============================================
 // Start Server
 // ============================================
+const startOrderAutoCompleter = require('./jobs/orderAutoCompleter')
+startOrderAutoCompleter()
+
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, () => {

@@ -214,6 +214,23 @@ exports.updateOrderStatus = async (req, res) => {
       updates.deliveredAt = new Date()
     }
 
+    if (req.body.trackingCode !== undefined) {
+      updates.trackingCode = req.body.trackingCode
+    }
+
+    // تنظیم زمان تکمیل خودکار (اگر روز وارد شده باشد)
+    if (status === 'Shipped' && req.body.deliveryDays) {
+      const days = parseInt(req.body.deliveryDays, 10)
+      if (!isNaN(days) && days > 0) {
+        const completionDate = new Date()
+        completionDate.setDate(completionDate.getDate() + days)
+        updates.autoCompleteAt = completionDate
+      }
+    } else if (status !== 'Shipped') {
+      // اگر وضعیت از حالت ارسال شده خارج شد، تایمر را پاک کن
+      updates.autoCompleteAt = null
+    }
+
     // نرمال‌سازی یادداشت ادمین تا خطای CastError ندهد
     if (adminNotes !== undefined) {
       let normalizedAdminNotes
@@ -235,6 +252,22 @@ exports.updateOrderStatus = async (req, res) => {
         runValidators: false,
       },
     )
+
+    // Audit Log
+    const { logAction } = require('../utils/auditLogger')
+    await logAction({
+      action: 'UPDATE_ORDER_STATUS',
+      entity: 'Order',
+      entityId: order._id,
+      userId: req.user._id,
+      details: {
+        oldStatus: order.orderStatus,
+        newStatus: status,
+        adminNotes: updates.adminNotes,
+        trackingCode: updates.trackingCode,
+      },
+      req,
+    })
 
     res.json({
       success: true,

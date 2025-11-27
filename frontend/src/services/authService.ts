@@ -13,6 +13,21 @@ export interface User {
   isActive: boolean;
   addresses?: any[];
   avatar?: string;
+  // Personal Info
+  nationalCode?: string;
+  birthDate?: string | Date;
+  landline?: string;
+  shebaNumber?: string;
+  province?: string;
+  city?: string;
+  // Legal Info
+  isLegal?: boolean;
+  companyName?: string;
+  companyNationalId?: string;
+  companyRegistrationId?: string;
+  companyLandline?: string;
+  companyProvince?: string;
+  companyCity?: string;
   orderStats?: {
     processing: number;
     delivered: number;
@@ -20,6 +35,10 @@ export interface User {
     cancelled: number;
   };
 }
+
+// ... (rest of the file)
+
+
 
 /**
  * Auth Response from Backend
@@ -153,6 +172,21 @@ export const authService = {
         isActive: userData.isActive !== false,
         addresses: userData.addresses || [],
         avatar: userData.avatar,
+        // Personal Info
+        nationalCode: userData.nationalCode,
+        birthDate: userData.birthDate,
+        landline: userData.landline,
+        shebaNumber: userData.shebaNumber,
+        province: userData.province,
+        city: userData.city,
+        // Legal Info
+        isLegal: userData.isLegal,
+        companyName: userData.companyName,
+        companyNationalId: userData.companyNationalId,
+        companyRegistrationId: userData.companyRegistrationId,
+        companyLandline: userData.companyLandline,
+        companyProvince: userData.companyProvince,
+        companyCity: userData.companyCity,
         orderStats: mappedOrderStats,
       };
     } catch (error: any) {
@@ -217,6 +251,21 @@ export const authService = {
         isActive: userData.isActive !== false,
         addresses: userData.addresses || [],
         avatar: userData.avatar,
+        // Personal Info
+        nationalCode: userData.nationalCode,
+        birthDate: userData.birthDate,
+        landline: userData.landline,
+        shebaNumber: userData.shebaNumber,
+        province: userData.province,
+        city: userData.city,
+        // Legal Info
+        isLegal: userData.isLegal,
+        companyName: userData.companyName,
+        companyNationalId: userData.companyNationalId,
+        companyRegistrationId: userData.companyRegistrationId,
+        companyLandline: userData.companyLandline,
+        companyProvince: userData.companyProvince,
+        companyCity: userData.companyCity,
         orderStats: mappedOrderStats,
       };
     } catch {
@@ -354,10 +403,10 @@ export const authService = {
   },
 
   /**
-   * Update Profile (including password)
-   * @param data - { name, email, password }
+   * Update Profile (including password and extended info)
+   * @param data - Profile data
    */
-  updateProfile: async (data: { name?: string; email?: string; password?: string }): Promise<any> => {
+  updateProfile: async (data: Partial<User> & { password?: string }): Promise<any> => {
     try {
       console.log("[AUTH] Updating profile");
       const response = await api.put("/auth/me/update", data);
@@ -520,6 +569,36 @@ export const authService = {
     const token = authService.getToken();
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  },
+  /**
+   * Admin: Get All Orders
+   */
+  getAllOrders: async (): Promise<{ success: boolean; data: any[] }> => {
+    try {
+      console.log("[AUTH] Fetching all orders (Admin)");
+      const response = await api.get("/orders");
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching all orders:", error);
+      throw new Error(error.response?.data?.message || "خطا در دریافت لیست سفارشات");
+    }
+  },
+
+  /**
+   * Admin: Update Order Status
+   */
+  updateOrderStatus: async (id: string, status: string, trackingCode?: string): Promise<{ success: boolean; data: any }> => {
+    try {
+      console.log(`[AUTH] Updating order ${id} status to ${status}`);
+      const payload: any = { status };
+      if (trackingCode) payload.trackingCode = trackingCode;
+
+      const response = await api.put(`/orders/${id}/status`, payload);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      throw new Error(error.response?.data?.message || "خطا در تغییر وضعیت سفارش");
     }
   },
 };

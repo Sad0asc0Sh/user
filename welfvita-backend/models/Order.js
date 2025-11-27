@@ -152,6 +152,14 @@ const orderSchema = new mongoose.Schema(
     deliveredAt: {
       type: Date,
     },
+    trackingCode: {
+      type: String,
+      trim: true,
+    },
+    // زمان تقریبی برای تکمیل خودکار سفارش (تبدیل به تحویل شده)
+    autoCompleteAt: {
+      type: Date,
+    },
 
     // یادداشت ادمین (اختیاری)
     adminNotes: {

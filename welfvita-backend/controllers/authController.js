@@ -24,6 +24,60 @@ exports.updateMyProfile = async (req, res) => {
     if (name) user.name = name
     if (email) user.email = email
 
+    // Personal Info & Sabt Ahval Check
+    // Check if identity fields are being modified
+    if (req.body.nationalCode !== undefined || req.body.birthDate !== undefined) {
+      const finalNationalCode = req.body.nationalCode !== undefined ? req.body.nationalCode : user.nationalCode
+      const finalBirthDate = req.body.birthDate !== undefined ? req.body.birthDate : user.birthDate
+
+      // If there is a National Code (and it's not being cleared)
+      if (finalNationalCode && finalNationalCode.length > 0) {
+        // 1. Enforce Birth Date presence
+        if (!finalBirthDate) {
+          return res.status(400).json({
+            success: false,
+            message: 'برای ثبت و تایید کد ملی، وارد کردن تاریخ تولد الزامی است',
+          })
+        }
+
+        // 2. Validate the Pair via Sabt Ahval Service
+        const sabtAhvalService = require('../services/sabtAhvalService')
+        const inquiry = await sabtAhvalService.inquiryIdentity(finalNationalCode, finalBirthDate)
+
+        if (!inquiry.isValid) {
+          return res.status(400).json({
+            success: false,
+            message: `خطای احراز هویت: ${inquiry.message}`,
+          })
+        }
+      }
+    }
+
+    if (req.body.nationalCode !== undefined) user.nationalCode = req.body.nationalCode
+    if (req.body.birthDate !== undefined) user.birthDate = req.body.birthDate
+    if (req.body.landline !== undefined) user.landline = req.body.landline
+    if (req.body.shebaNumber !== undefined) {
+      const { isValidSheba } = require('../utils/validators')
+      if (req.body.shebaNumber && !isValidSheba(req.body.shebaNumber)) {
+        return res.status(400).json({
+          success: false,
+          message: 'شماره شبا نامعتبر است',
+        })
+      }
+      user.shebaNumber = req.body.shebaNumber
+    }
+    if (req.body.province !== undefined) user.province = req.body.province
+    if (req.body.city !== undefined) user.city = req.body.city
+
+    // Legal Info
+    if (req.body.isLegal !== undefined) user.isLegal = req.body.isLegal
+    if (req.body.companyName !== undefined) user.companyName = req.body.companyName
+    if (req.body.companyNationalId !== undefined) user.companyNationalId = req.body.companyNationalId
+    if (req.body.companyRegistrationId !== undefined) user.companyRegistrationId = req.body.companyRegistrationId
+    if (req.body.companyLandline !== undefined) user.companyLandline = req.body.companyLandline
+    if (req.body.companyProvince !== undefined) user.companyProvince = req.body.companyProvince
+    if (req.body.companyCity !== undefined) user.companyCity = req.body.companyCity
+
     // اگر رمز عبور جدید ارسال شده، آن را هش کن
     if (password && password.trim() !== '') {
       if (password.length < 6) {

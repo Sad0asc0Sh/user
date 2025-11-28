@@ -12,6 +12,7 @@ import "swiper/css/navigation";
 import { Product } from "@/services/productService";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import CountdownTimer from "@/components/ui/CountdownTimer";
 
 interface ProductCardProps {
     product: Product;
@@ -37,22 +38,117 @@ export default function ProductCard({ product }: ProductCardProps) {
         toggleWishlist(product);
     };
 
+    // Determine Header Type
+    let headerConfig = null;
+
+    if (product.isFlashDeal) {
+        // Default Flash Deal Style (Amber)
+        let themeColor = 'text-amber-500';
+        let themeBorder = 'bg-amber-500';
+        let themeTitle = 'پیشنهاد لحظه‌ای';
+
+        // If Campaign Theme is present, override with Campaign Style
+        if (product.campaignLabel || product.campaignTheme) {
+            themeTitle = product.campaignLabel || 'پیشنهاد لحظه‌ای'; // Use label if present, else default
+
+            if (product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold') {
+                themeColor = 'text-amber-600';
+                themeBorder = 'bg-gradient-to-r from-amber-400 to-orange-500';
+            } else if (product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red') {
+                themeColor = 'text-rose-600';
+                themeBorder = 'bg-gradient-to-r from-rose-500 to-purple-700';
+            } else if (product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime') {
+                themeColor = 'text-lime-600';
+                themeBorder = 'bg-gradient-to-r from-lime-400 to-green-500';
+            } else {
+                // Default Blue Campaign if theme is Blue or generic
+                themeColor = 'text-blue-600';
+                themeBorder = 'bg-gradient-to-r from-blue-400 to-indigo-500';
+            }
+        }
+
+        headerConfig = {
+            type: 'flash',
+            title: themeTitle,
+            color: themeColor,
+            borderColor: themeBorder,
+            endTime: product.flashDealEndTime,
+            iconColor: themeColor
+        };
+    } else if (product.campaignLabel || product.campaignTheme) {
+        // Map campaign themes to colors
+        let themeColor = 'text-blue-600';
+        let themeBorder = 'bg-gradient-to-r from-blue-400 to-indigo-500';
+
+        // Check for specific themes
+        if (product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold') {
+            themeColor = 'text-amber-600';
+            themeBorder = 'bg-gradient-to-r from-amber-400 to-orange-500';
+        } else if (product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red') {
+            // Mapping 'fire' to the Pink/Purple gradient theme (as requested to match detail page badge)
+            themeColor = 'text-rose-600';
+            themeBorder = 'bg-gradient-to-r from-rose-500 to-purple-700';
+        } else if (product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime') {
+            themeColor = 'text-lime-600';
+            themeBorder = 'bg-gradient-to-r from-lime-400 to-green-500';
+        }
+
+        headerConfig = {
+            type: 'campaign',
+            title: product.campaignLabel || 'فروش ویژه',
+            color: themeColor,
+            borderColor: themeBorder,
+            // Use flashDealEndTime as fallback for campaign timer if available, otherwise no timer
+            endTime: product.flashDealEndTime || product.specialOfferEndTime,
+            iconColor: themeColor
+        };
+    } else if (product.isSpecialOffer || (product.discount && product.discount > 0)) {
+        headerConfig = {
+            type: 'amazing',
+            title: 'شگفت‌انگیز',
+            color: 'text-red-500',
+            borderColor: 'bg-red-500',
+            endTime: product.specialOfferEndTime,
+            iconColor: 'text-red-500'
+        };
+    }
+
     return (
         <div
-            className="group relative bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
+            className={`group relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col h-full ${headerConfig ? 'pt-0' : 'pt-0'} ${isHovered ? 'shadow-lg border-gray-200' : 'border-gray-100'}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Badges */}
-            <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
+            {/* Special Header Line */}
+            {headerConfig && (
+                <div className="w-full">
+                    {/* Colored Line */}
+                    <div className={`h-1 w-full ${headerConfig.borderColor}`} />
+
+                    {/* Header Content */}
+                    <div className="flex items-center justify-between px-1 py-1 bg-white gap-1">
+                        {/* Left: Timer */}
+                        <div className={`text-[10px] font-bold whitespace-nowrap ${headerConfig.color}`}>
+                            {headerConfig.endTime && (
+                                <CountdownTimer targetDate={headerConfig.endTime} showSeconds={true} className="text-[10px]" />
+                            )}
+                        </div>
+
+                        {/* Right: Title */}
+                        <div className={`text-[10px] font-bold whitespace-nowrap truncate ${headerConfig.color}`}>
+                            {headerConfig.title}
+                        </div>
+                    </div>
+                    {/* Separator */}
+                    <div className="h-px w-full bg-gray-100" />
+                </div>
+            )}
+
+            {/* Badges (Adjusted position if header exists) */}
+            <div className={`absolute left-3 z-20 flex flex-col gap-2 ${headerConfig ? 'top-[50px]' : 'top-3'}`}>
                 {discountPercentage > 0 && (
                     <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
                         {discountPercentage}% تخفیف
-                    </span>
-                )}
-                {product.isFlashDeal && (
-                    <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm animate-pulse">
-                        فروش ویژه
                     </span>
                 )}
             </div>

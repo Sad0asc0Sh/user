@@ -198,9 +198,9 @@ function ProductListingContent() {
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setShowSortSheet(true)}
-                                className="flex items-center gap-2 bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                                className="flex items-center gap-2 bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
                             >
-                                <ArrowUpDown size={18} />
+                                <ArrowUpDown size={16} />
                                 <span className="hidden sm:inline">مرتب‌سازی:</span>
                                 <span className="text-vita-600">
                                     {sortParam === 'newest' && 'جدیدترین'}
@@ -213,9 +213,9 @@ function ProductListingContent() {
 
                             <button
                                 onClick={() => setShowFilters(true)}
-                                className="lg:hidden flex items-center gap-2 bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                                className="lg:hidden flex items-center gap-2 bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
                             >
-                                <SlidersHorizontal size={18} />
+                                <SlidersHorizontal size={16} />
                                 فیلترها
                             </button>
                         </div>

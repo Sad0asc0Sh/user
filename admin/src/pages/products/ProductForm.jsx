@@ -53,6 +53,8 @@ function ProductForm() {
   const [flashDealEndTime, setFlashDealEndTime] = useState('')
   const [isSpecialOffer, setIsSpecialOffer] = useState(false)
   const [specialOfferEndTime, setSpecialOfferEndTime] = useState('')
+  const [campaignLabel, setCampaignLabel] = useState('')
+  const [campaignTheme, setCampaignTheme] = useState('')
   const [removedImages, setRemovedImages] = useState([])
 
   // Category store (Zustand)
@@ -92,42 +94,44 @@ function ProductForm() {
   // Load product for edit mode
   useEffect(() => {
     if (!isEdit) return
-    ;(async () => {
-      setLoading(true)
-      try {
-        const res = await api.get(`/products/${id}`)
-        const p = res?.data?.data
-        if (p) {
-          form.setFieldsValue({
-            name: p.name,
-            sku: p.sku,
-            price: p.price,
-            stock: p.stock,
-            category: p.category,
-            brand: p.brand,
-            description: p.description,
-            productType: p.productType || 'simple',
-          })
-          setFiles(toFileList(p.images))
-          setProductType(p.productType || 'simple')
-          setAttributes(p.attributes || [])
-          setVariants(p.variants || [])
+      ; (async () => {
+        setLoading(true)
+        try {
+          const res = await api.get(`/products/${id}`)
+          const p = res?.data?.data
+          if (p) {
+            form.setFieldsValue({
+              name: p.name,
+              sku: p.sku,
+              price: p.price,
+              stock: p.stock,
+              category: p.category,
+              brand: p.brand,
+              description: p.description,
+              productType: p.productType || 'simple',
+            })
+            setFiles(toFileList(p.images))
+            setProductType(p.productType || 'simple')
+            setAttributes(p.attributes || [])
+            setVariants(p.variants || [])
 
-          // Load promotion fields (ISO strings for JalaliDateTimePicker)
-          setDiscount(p.discount || 0)
-          setIsFlashDeal(p.isFlashDeal || false)
-          setFlashDealEndTime(p.flashDealEndTime || '')
-          setIsSpecialOffer(p.isSpecialOffer || false)
-          setSpecialOfferEndTime(p.specialOfferEndTime || '')
+            // Load promotion fields (ISO strings for JalaliDateTimePicker)
+            setDiscount(p.discount || 0)
+            setIsFlashDeal(p.isFlashDeal || false)
+            setFlashDealEndTime(p.flashDealEndTime || '')
+            setIsSpecialOffer(p.isSpecialOffer || false)
+            setSpecialOfferEndTime(p.specialOfferEndTime || '')
+            setCampaignLabel(p.campaignLabel || '')
+            setCampaignTheme(p.campaignTheme || '')
+          }
+        } catch (err) {
+          message.error(
+            err?.message || 'خطا در دریافت اطلاعات محصول از سرور',
+          )
+        } finally {
+          setLoading(false)
         }
-      } catch (err) {
-        message.error(
-          err?.message || 'خطا در دریافت اطلاعات محصول از سرور',
-        )
-      } finally {
-        setLoading(false)
-      }
-    })()
+      })()
   }, [id, isEdit, form])
 
   // ============================================
@@ -337,6 +341,10 @@ function ProductForm() {
           ? specialOfferEndTime.toISOString()
           : new Date(specialOfferEndTime).toISOString()
       }
+
+      // اضافه کردن فیلدهای کمپین
+      payload.campaignLabel = campaignLabel
+      payload.campaignTheme = campaignTheme
 
       if (!isEdit) {
         // ایجاد محصول
@@ -661,7 +669,7 @@ function ProductForm() {
                               userSelect: 'none'
                             }}
                           >
-                            فعال‌سازی پیشنهاد لحظه‌ای
+                            فعال‌سازی‌پیشنهاد‌لحظه ای
                           </label>
                         </div>
 
@@ -677,7 +685,7 @@ function ProductForm() {
                           >
                             <Form.Item
                               label="زمان پایان تایمر (تاریخ شمسی)"
-                              style={{ marginBottom: 0 }}
+                              style={{ marginBottom: '16px' }}
                             >
                               <JalaliDateTimePicker
                                 value={flashDealEndTime}
@@ -686,10 +694,36 @@ function ProductForm() {
                                 borderColor="#d9d9d9"
                                 focusColor="#1890ff"
                               />
-                              <p style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
-                                محصول با تایمر شمارش معکوس در بخش "پیشنهادات لحظه‌ای" نمایش داده می‌شود
-                              </p>
                             </Form.Item>
+
+                            <Form.Item label="عنوان کمپین (اختیاری)">
+                              <Input
+                                placeholder="مثلاً: فروش ویژه، حراج تابستانه"
+                                value={campaignLabel}
+                                onChange={(e) => setCampaignLabel(e.target.value)}
+                                allowClear
+                              />
+                            </Form.Item>
+
+                            <Form.Item label="تم رنگی کمپین">
+                              <Select
+                                value={campaignTheme}
+                                onChange={(val) => setCampaignTheme(val)}
+                                placeholder="انتخاب تم رنگی"
+                                allowClear
+                                options={[
+                                  { value: 'gold', label: 'طلایی (لوکس/نوروز)' },
+                                  { value: 'fire', label: 'آتشین (حراج ویژه/قرمز)' },
+                                  { value: 'lime', label: 'سبز لیمویی (بهاره)' },
+                                  { value: 'blue', label: 'آبی (پیش‌فرض)' },
+                                ]}
+                              />
+                            </Form.Item>
+
+                            <p style={{ marginTop: 8, color: '#666', fontSize: '12px' }}>
+                              محصول با تایمر شمارش معکوس در بخش "پیشنهادات لحظه‌ای" نمایش داده می‌شود.
+                              اگر تم رنگی انتخاب کنید، ظاهر کارت محصول تغییر خواهد کرد.
+                            </p>
                           </div>
                         )}
                       </Space>
@@ -721,7 +755,7 @@ function ProductForm() {
                               userSelect: 'none'
                             }}
                           >
-                            فعال‌سازی پیشنهاد ویژه
+                            فعال‌سازی‌شگفت‌انگیز
                           </label>
                         </div>
 
@@ -781,120 +815,120 @@ function ProductForm() {
               // تب ویژگی‌ها و متغیرها (فقط برای محصولات متغیر)
               ...(productType === 'variable'
                 ? [
-                    {
-                      key: 'variants',
-                      label: 'ویژگی‌ها و متغیرها',
-                      children: (
-                        <Space
-                          direction="vertical"
-                          style={{ width: '100%' }}
-                          size="large"
-                        >
-                          {/* بخش ۱: مدیریت ویژگی‌ها */}
-                          <Card title="ویژگی‌ها (Attributes)" size="small">
-                            <Space direction="vertical" style={{ width: '100%' }}>
-                              <div>
-                                <Space>
-                                  <Input
-                                    placeholder="نام ویژگی (مثلاً: رنگ)"
-                                    value={newAttributeName}
-                                    onChange={(e) =>
-                                      setNewAttributeName(e.target.value)
-                                    }
-                                    style={{ width: 200 }}
-                                  />
-                                  <Input
-                                    placeholder="مقادیر (با کاما جدا کنید: آبی، قرمز)"
-                                    value={newAttributeValues}
-                                    onChange={(e) =>
-                                      setNewAttributeValues(e.target.value)
-                                    }
-                                    style={{ width: 300 }}
-                                  />
-                                  <Button
-                                    type="primary"
-                                    icon={<PlusOutlined />}
-                                    onClick={handleAddAttribute}
-                                  >
-                                    افزودن ویژگی
-                                  </Button>
+                  {
+                    key: 'variants',
+                    label: 'ویژگی‌ها و متغیرها',
+                    children: (
+                      <Space
+                        direction="vertical"
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        {/* بخش ۱: مدیریت ویژگی‌ها */}
+                        <Card title="ویژگی‌ها (Attributes)" size="small">
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <div>
+                              <Space>
+                                <Input
+                                  placeholder="نام ویژگی (مثلاً: رنگ)"
+                                  value={newAttributeName}
+                                  onChange={(e) =>
+                                    setNewAttributeName(e.target.value)
+                                  }
+                                  style={{ width: 200 }}
+                                />
+                                <Input
+                                  placeholder="مقادیر (با کاما جدا کنید: آبی، قرمز)"
+                                  value={newAttributeValues}
+                                  onChange={(e) =>
+                                    setNewAttributeValues(e.target.value)
+                                  }
+                                  style={{ width: 300 }}
+                                />
+                                <Button
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={handleAddAttribute}
+                                >
+                                  افزودن ویژگی
+                                </Button>
+                              </Space>
+                            </div>
+
+                            {/* لیست ویژگی‌های موجود */}
+                            {attributes.length > 0 && (
+                              <div
+                                style={{
+                                  marginTop: 16,
+                                  padding: 16,
+                                  background: '#f5f5f5',
+                                  borderRadius: 8,
+                                }}
+                              >
+                                <h4>ویژگی‌های تعریف شده:</h4>
+                                <Space direction="vertical" style={{ width: '100%' }}>
+                                  {attributes.map((attr, index) => (
+                                    <div
+                                      key={index}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: 8,
+                                        background: '#fff',
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      <div>
+                                        <strong>{attr.name}:</strong>{' '}
+                                        {attr.values.join(', ')}
+                                      </div>
+                                      <Button
+                                        danger
+                                        size="small"
+                                        icon={<DeleteOutlined />}
+                                        onClick={() =>
+                                          handleRemoveAttribute(index)
+                                        }
+                                      >
+                                        حذف
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </Space>
                               </div>
+                            )}
+                          </Space>
+                        </Card>
 
-                              {/* لیست ویژگی‌های موجود */}
-                              {attributes.length > 0 && (
-                                <div
-                                  style={{
-                                    marginTop: 16,
-                                    padding: 16,
-                                    background: '#f5f5f5',
-                                    borderRadius: 8,
-                                  }}
-                                >
-                                  <h4>ویژگی‌های تعریف شده:</h4>
-                                  <Space direction="vertical" style={{ width: '100%' }}>
-                                    {attributes.map((attr, index) => (
-                                      <div
-                                        key={index}
-                                        style={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          padding: 8,
-                                          background: '#fff',
-                                          borderRadius: 4,
-                                        }}
-                                      >
-                                        <div>
-                                          <strong>{attr.name}:</strong>{' '}
-                                          {attr.values.join(', ')}
-                                        </div>
-                                        <Button
-                                          danger
-                                          size="small"
-                                          icon={<DeleteOutlined />}
-                                          onClick={() =>
-                                            handleRemoveAttribute(index)
-                                          }
-                                        >
-                                          حذف
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </Space>
-                                </div>
-                              )}
-                            </Space>
-                          </Card>
+                        {/* بخش ۲: تولید خودکار متغیرها */}
+                        <Card title="متغیرها (Variants)" size="small">
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button
+                              type="primary"
+                              onClick={generateVariants}
+                              disabled={attributes.length === 0}
+                            >
+                              ایجاد متغیرها از ویژگی‌ها
+                            </Button>
 
-                          {/* بخش ۲: تولید خودکار متغیرها */}
-                          <Card title="متغیرها (Variants)" size="small">
-                            <Space direction="vertical" style={{ width: '100%' }}>
-                              <Button
-                                type="primary"
-                                onClick={generateVariants}
-                                disabled={attributes.length === 0}
-                              >
-                                ایجاد متغیرها از ویژگی‌ها
-                              </Button>
-
-                              {/* جدول متغیرها */}
-                              {variants.length > 0 && (
-                                <Table
-                                  columns={variantColumns}
-                                  dataSource={variants}
-                                  rowKey="_id"
-                                  pagination={false}
-                                  bordered
-                                  size="small"
-                                />
-                              )}
-                            </Space>
-                          </Card>
-                        </Space>
-                      ),
-                    },
-                  ]
+                            {/* جدول متغیرها */}
+                            {variants.length > 0 && (
+                              <Table
+                                columns={variantColumns}
+                                dataSource={variants}
+                                rowKey="_id"
+                                pagination={false}
+                                bordered
+                                size="small"
+                              />
+                            )}
+                          </Space>
+                        </Card>
+                      </Space>
+                    ),
+                  },
+                ]
                 : []),
             ]}
           />

@@ -247,10 +247,11 @@ export default function ProductDetailPage() {
                                         className="object-contain p-8"
                                     />
                                     {product.campaignLabel && (
-                                        <div className="absolute top-4 left-4 z-20">
-                                            <span className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
-                                                product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
-                                                    'bg-gradient-to-r from-lime-500 to-orange-400'
+                                        <div className="absolute top-20 left-4 z-20">
+                                            <span className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm ${product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                                                product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                                    product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime' ? 'bg-gradient-to-r from-lime-400 to-green-500' :
+                                                        'bg-gradient-to-r from-blue-400 to-indigo-500' // Default to Blue
                                                 }`}>
                                                 {product.campaignLabel}
                                             </span>
@@ -457,9 +458,10 @@ export default function ProductDetailPage() {
                     {product.oldPrice && (
                         <div className="flex items-center gap-2 mb-1">
                             {product.discount > 0 && (
-                                <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'red-purple' ? 'bg-rose-600' :
-                                    product.campaignTheme === 'gold-red' ? 'bg-amber-600' :
-                                        'bg-[#ef394e]'
+                                <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                                        product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                            product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime' ? 'bg-gradient-to-r from-lime-400 to-green-500' :
+                                                product.campaignLabel ? 'bg-gradient-to-r from-blue-400 to-indigo-500' : 'bg-[#ef394e]'
                                     }`}>
                                     {product.discount.toLocaleString("fa-IR")}٪
                                 </div>
@@ -541,7 +543,6 @@ export default function ProductDetailPage() {
                     </AnimatePresence>
                 </div>
             </div>
-
-        </div >
+        </div>
     );
 }

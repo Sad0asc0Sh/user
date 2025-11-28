@@ -94,7 +94,11 @@ interface BackendProduct {
  */
 const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
   // Calculate old price if discount exists
-  const discount = backendProduct.discount || 0;
+  // Enforce rule: Discount is valid ONLY if isFlashDeal, isSpecialOffer, OR a Campaign is active
+  // The user requested that discounts should not be applied unless one of these options is selected.
+  const hasActivePromotion = backendProduct.isFlashDeal || backendProduct.isSpecialOffer || backendProduct.campaignLabel;
+  const discount = hasActivePromotion ? (backendProduct.discount || 0) : 0;
+
   const oldPrice = discount > 0
     ? Math.round(backendProduct.price / (1 - discount / 100))
     : undefined;

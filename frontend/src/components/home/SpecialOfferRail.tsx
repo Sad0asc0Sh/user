@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { productService, Product } from "@/services/productService";
 import { useCountdown } from "@/hooks/useCountdown";
+import CountdownTimer from "@/components/ui/CountdownTimer";
 
 export default function SpecialOfferRail() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -65,7 +66,7 @@ export default function SpecialOfferRail() {
               <Percent size={12} className="text-white fill-white" />
             </div>
             <h2 className="text-base font-bold text-yellow-400">
-              پیشنهاد‌شگفت‌انگیز
+              <span className="text-[11px]">پیشنهاد‌شگفت‌انگیز</span>
             </h2>
           </div>
 
@@ -102,75 +103,144 @@ export default function SpecialOfferRail() {
           {products.map((product) => {
             const isOutOfStock = product.countInStock === 0;
 
+            // Determine Header Type
+            let headerConfig = null;
+
+            if (product.isFlashDeal) {
+              headerConfig = {
+                type: 'flash',
+                title: 'پیشنهاد لحظه‌ای',
+                color: 'text-amber-500',
+                borderColor: 'bg-amber-500',
+                endTime: product.flashDealEndTime,
+              };
+            } else if (product.campaignLabel || product.campaignTheme) {
+              // If it's a campaign, use campaign styling
+              let themeColor = 'text-blue-600';
+              let themeBorder = 'bg-gradient-to-r from-blue-400 to-indigo-500';
+
+              if (product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold') {
+                themeColor = 'text-amber-600';
+                themeBorder = 'bg-gradient-to-r from-amber-400 to-orange-500';
+              } else if (product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red') {
+                themeColor = 'text-rose-600';
+                themeBorder = 'bg-gradient-to-r from-rose-500 to-purple-700';
+              } else if (product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime') {
+                themeColor = 'text-lime-600';
+                themeBorder = 'bg-gradient-to-r from-lime-400 to-green-500';
+              }
+
+              headerConfig = {
+                type: 'campaign',
+                title: product.campaignLabel || 'فروش ویژه',
+                color: themeColor,
+                borderColor: themeBorder,
+                endTime: product.flashDealEndTime || product.specialOfferEndTime,
+                iconColor: themeColor
+              };
+            } else if (product.isSpecialOffer || (product.discount && product.discount > 0)) {
+              headerConfig = {
+                type: 'amazing',
+                title: 'شگفت‌انگیز',
+                color: 'text-red-500',
+                borderColor: 'bg-red-500',
+                endTime: product.specialOfferEndTime,
+              };
+            }
+
             return (
               <SwiperSlide
                 key={product.id}
                 style={{ width: "148px", height: "auto" }}
               >
                 <Link href={`/product/${product.id}`} className="block h-full">
-                  <div className="bg-white p-3 rounded-lg h-full flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
-                    {/* Product Image */}
-                    <div className="aspect-square w-full mb-3 relative flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
-                      <Image
-                        src={product.image || "/placeholder.png"}
-                        alt={product.name}
-                        fill
-                        className={`object-cover group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-60' : ''}`}
-                      />
+                  <div className={`bg-white rounded-lg h-full flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow duration-300 relative overflow-hidden group ${headerConfig ? 'pt-0' : 'p-3'}`}>
 
-                      {product.campaignLabel && (
-                        <div className="absolute top-2 left-2 z-20">
-                          <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
-                            product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
-                              'bg-gradient-to-r from-lime-500 to-orange-400'
-                            }`}>
-                            {product.campaignLabel}
-                          </span>
+                    {/* Special Header Line */}
+                    {headerConfig && (
+                      <div className="w-full mb-2">
+                        <div className={`h-1 w-full ${headerConfig.borderColor}`} />
+                        <div className="flex items-center justify-between px-2 py-1 bg-white gap-1">
+                          <div className={`text-[10px] font-bold whitespace-nowrap ${headerConfig.color}`}>
+                            {headerConfig.endTime && (
+                              <CountdownTimer targetDate={headerConfig.endTime} showSeconds={false} className="text-[10px]" />
+                            )}
+                          </div>
+                          <div className={`text-[10px] font-bold whitespace-nowrap truncate ${headerConfig.color}`}>
+                            {headerConfig.title}
+                          </div>
                         </div>
-                      )}
+                        <div className="h-px w-full bg-gray-100" />
+                      </div>
+                    )}
 
-                      {/* Out of Stock Overlay */}
-                      {product.countInStock === 0 && (
-                        <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center">
-                          <span className="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                            ناموجود
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    <div className={headerConfig ? "px-3 pb-3" : ""}>
+                      {/* Product Image */}
+                      <div className="aspect-square w-full mb-3 relative flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
+                        <Image
+                          src={product.image || "/placeholder.png"}
+                          alt={product.name}
+                          fill
+                          className={`object-cover group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-60' : ''}`}
+                        />
 
-                    {/* Product Name */}
-                    <h3 className={`text-[11px] font-bold leading-5 line-clamp-2 mb-2 min-h-[40px] ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
-                      {product.name}
-                    </h3>
-
-                    {/* Price Section */}
-                    <div className="flex flex-col gap-1 mt-auto">
-                      <div className="flex items-center justify-between h-5">
-                        {product.countInStock > 0 && product.discount > 0 ? (
-                          <>
-                            <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'gold-red' ? 'bg-[#ef394e]' :
-                              product.campaignTheme === 'red-purple' ? 'bg-rose-600' :
-                                'bg-[#ef394e]'
+                        {/* Badges - Only show if no header */}
+                        {!headerConfig && product.campaignLabel && (
+                          <div className="absolute top-2 left-2 z-20">
+                            <span className={`text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm ${product.campaignTheme === 'gold-red' ? 'bg-gradient-to-r from-yellow-400 to-red-600' :
+                              product.campaignTheme === 'red-purple' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                'bg-gradient-to-r from-lime-500 to-orange-400'
                               }`}>
-                              {product.discount.toLocaleString("fa-IR")}٪
-                            </div>
-                            <span className="text-[11px] text-gray-300 line-through decoration-gray-300">
-                              {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
+                              {product.campaignLabel}
                             </span>
-                          </>
-                        ) : (
-                          <div className="h-5" />
+                          </div>
+                        )}
+
+                        {/* Out of Stock Overlay */}
+                        {product.countInStock === 0 && (
+                          <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center">
+                            <span className="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                              ناموجود
+                            </span>
+                          </div>
                         )}
                       </div>
 
-                      <div className={`flex items-center justify-end gap-1 ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-800'}`}>
-                        <span className="text-[15px] font-black tracking-tight">
-                          {product.price.toLocaleString("fa-IR")}
-                        </span>
-                        <span className={`text-[10px] font-medium ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-600'}`}>
-                          تومان
-                        </span>
+                      {/* Product Name */}
+                      <h3 className={`text-[11px] font-bold leading-5 line-clamp-2 mb-2 min-h-[40px] ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
+                        {product.name}
+                      </h3>
+
+                      {/* Price Section */}
+                      <div className="flex flex-col gap-1 mt-auto">
+                        <div className="flex items-center justify-between h-5">
+                          {product.countInStock > 0 && product.discount > 0 ? (
+                            <>
+                              <div className={`text-white text-[11px] font-bold px-2 py-0.5 rounded-full ${product.campaignTheme === 'gold-red' || product.campaignTheme === 'gold' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                                  product.campaignTheme === 'red-purple' || product.campaignTheme === 'fire' || product.campaignTheme === 'red' ? 'bg-gradient-to-r from-rose-500 to-purple-700' :
+                                    product.campaignTheme === 'lime-orange' || product.campaignTheme === 'lime' ? 'bg-gradient-to-r from-lime-400 to-green-500' :
+                                      (product.campaignLabel || product.campaignTheme) ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
+                                        'bg-[#ef394e]'
+                                }`}>
+                                {product.discount.toLocaleString("fa-IR")}٪
+                              </div>
+                              <span className="text-[11px] text-gray-300 line-through decoration-gray-300">
+                                {(product.compareAtPrice || product.price).toLocaleString("fa-IR")}
+                              </span>
+                            </>
+                          ) : (
+                            <div className="h-5" />
+                          )}
+                        </div>
+
+                        <div className={`flex items-center justify-end gap-1 ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-800'}`}>
+                          <span className="text-[15px] font-black tracking-tight">
+                            {product.price.toLocaleString("fa-IR")}
+                          </span>
+                          <span className={`text-[10px] font-medium ${product.countInStock === 0 ? 'text-gray-400' : 'text-gray-600'}`}>
+                            تومان
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -162,10 +162,33 @@ export default function ProfilePage() {
 
     const isVerified = !!user?.nationalCode;
 
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            try {
+                // We'll use a lightweight call or just fetch all and count
+                // Ideally backend should have an endpoint for count, but for now we can fetch all
+                // Or better, let's assume we can get it from the same notifications endpoint
+                const res = await import("@/lib/api").then(m => m.default.get('/notifications'));
+                if (res.data.success) {
+                    const unread = res.data.data.filter((n: any) => !n.isRead).length;
+                    setUnreadCount(unread);
+                }
+            } catch (error) {
+                console.error("Error fetching notification count:", error);
+            }
+        };
+
+        if (authService.isAuthenticated()) {
+            fetchUnreadCount();
+        }
+    }, []);
+
     const menuItems = [
         {
             icon: UserCheck,
-            label: "احراز هویت",
+            label: "اطلاعات‌حساب‌کاربری",
             status: isVerified ? "تایید شده" : "تکمیل نشده",
             statusColor: isVerified ? "text-green-600" : "text-red-500",
             href: "/profile/verification"
@@ -173,7 +196,7 @@ export default function ProfilePage() {
         { icon: Heart, label: "علاقه‌مندی‌ها", href: "/profile/lists" },
         { icon: MessageSquare, label: "نقد و نظرات", href: "/profile/reviews" },
         { icon: MapPin, label: "آدرس‌ها", href: "/profile/addresses" },
-        { icon: Bell, label: "پیغام‌ها", badge: 2, href: "/profile/messages" },
+        { icon: Bell, label: "پیغام‌ها", badge: unreadCount > 0 ? unreadCount : undefined, href: "/profile/messages" },
         { icon: Clock, label: "بازدیدهای اخیر", href: "/profile/recent" },
     ];
 

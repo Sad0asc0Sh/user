@@ -33,20 +33,57 @@ const settingsSchema = new mongoose.Schema(
       apiSecret: { type: String, select: false },
     },
 
-    // ZarinPal Payment Configuration
+    // Multi-Gateway Payment Configuration
     paymentConfig: {
-      merchantId: {
+      // Active gateway selector
+      activeGateway: {
         type: String,
-        default: '',
-        select: false, // Hidden by default for security
+        enum: ['zarinpal', 'sadad'],
+        default: 'zarinpal',
       },
-      isSandbox: {
-        type: Boolean,
-        default: true, // Start with sandbox mode
+
+      // ZarinPal Configuration
+      zarinpal: {
+        merchantId: {
+          type: String,
+          default: '',
+          select: false, // Hidden by default for security
+        },
+        isSandbox: {
+          type: Boolean,
+          default: true,
+        },
+        isActive: {
+          type: Boolean,
+          default: false,
+        },
       },
-      isActive: {
-        type: Boolean,
-        default: false, // Disabled until merchant ID is set
+
+      // Sadad (Melli) Configuration
+      sadad: {
+        merchantId: {
+          type: String,
+          default: '',
+          select: false,
+        },
+        terminalId: {
+          type: String,
+          default: '',
+          select: false,
+        },
+        terminalKey: {
+          type: String,
+          default: '',
+          select: false,
+        },
+        isSandbox: {
+          type: Boolean,
+          default: true,
+        },
+        isActive: {
+          type: Boolean,
+          default: false,
+        },
       },
     },
 

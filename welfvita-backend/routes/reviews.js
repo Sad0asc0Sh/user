@@ -5,10 +5,14 @@ const {
   updateReviewStatus, // (تأیید یا مخفی کردن)
   deleteReview,
   postAdminReply, // پاسخ ادمین به نظر
+  getProductReviews,
+  addReview,
 } = require('../controllers/reviewController')
 const { protect, authorize } = require('../middleware/auth')
 
-// (در آینده روت POST /:productId برای ثبت توسط کاربر خواهیم داشت)
+// --- روت‌های عمومی و کاربر ---
+router.get('/product/:productId', getProductReviews)
+router.post('/:productId', protect, addReview)
 
 // --- روت‌های ادمین ---
 router.get('/admin', protect, authorize('admin', 'manager', 'superadmin'), getAllReviewsAsAdmin)

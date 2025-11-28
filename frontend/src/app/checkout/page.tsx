@@ -9,6 +9,7 @@ import { orderService, CreateOrderRequest, OrderItem, ShippingAddress } from "@/
 import { authService, User as UserType } from "@/services/authService";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import api from "@/lib/api";
 
 interface Address {
     _id?: string;
@@ -84,20 +85,59 @@ export default function CheckoutPage() {
         nationalCode: ""
     });
 
-    // Pricing Calculations
     // Shipping State
     const [shippingMethods, setShippingMethods] = useState<any[]>([]);
     const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | null>(null);
     const [loadingShipping, setLoadingShipping] = useState(true);
+
+    // Active Gateway State
+    const [availableGateways, setAvailableGateways] = useState<any[]>([]);
+    const [selectedGateway, setSelectedGateway] = useState<string>("");
 
     // Pricing Calculations
     const selectedMethod = shippingMethods.find(m => m._id === selectedShippingMethodId);
     const shippingPrice = selectedMethod ? selectedMethod.cost : 0;
     const taxPrice = 0;
     const finalTotalPrice = Math.max(0, totalPrice + shippingPrice + taxPrice - discount);
-
-    // Total Savings (Product Profit + Coupon Discount)
     const totalSavings = (totalProfit || 0) + discount;
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                console.log("Fetching public settings...");
+                const res = await api.get('/settings/public');
+                console.log("Settings response:", res.data);
+
+                if (res.data.success) {
+                    const config = res.data.data.paymentConfig;
+                    const defaultGateway = config?.activeGateway || 'zarinpal';
+
+                    // Build list of available gateways
+                    const gateways = [];
+
+                    if (config?.zarinpal?.isActive) {
+                        gateways.push({ id: 'zarinpal', name: 'زرین‌پال', icon: '⚡' });
+                    }
+
+                    if (config?.sadad?.isActive) {
+                        gateways.push({ id: 'sadad', name: 'سداد (ملی)', icon: '🏦' });
+                    }
+
+                    setAvailableGateways(gateways);
+
+                    // Set default selection
+                    if (gateways.some(g => g.id === defaultGateway)) {
+                        setSelectedGateway(defaultGateway);
+                    } else if (gateways.length > 0) {
+                        setSelectedGateway(gateways[0].id);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching settings:", err);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     // Load addresses, shipping methods, and coupon on mount
     useEffect(() => {
@@ -126,8 +166,6 @@ export default function CheckoutPage() {
     const loadShippingMethods = async () => {
         try {
             setLoadingShipping(true);
-            // Assuming api is imported from "@/lib/api" which is used in orderService
-            // We can use api directly here since it's exported from lib/api
             const { default: api } = await import("@/lib/api");
             const res = await api.get('/shipping');
             if (res.data.success) {
@@ -407,10 +445,37 @@ export default function CheckoutPage() {
                 totalDiscount: totalSavings,
             };
 
+            // Step 1: Create the order
             const response = await orderService.create(orderData);
 
             if (response.success && response.data) {
-                router.push(`/profile/orders/${response.data._id}`);
+                const orderId = response.data._id;
+
+                // Step 2: If online payment, initiate payment
+                if (paymentMethod === "online") {
+                    try {
+                        const { default: api } = await import("@/lib/api");
+                        // Pass selected gateway if available
+                        const paymentResponse = await api.post(`/orders/${orderId}/pay`, {
+                            gateway: selectedGateway
+                        });
+
+                        if (paymentResponse.data.success && paymentResponse.data.data.paymentUrl) {
+                            // Redirect to Gateway
+                            window.location.href = paymentResponse.data.data.paymentUrl;
+                        } else {
+                            setError("خطا در ایجاد درخواست پرداخت");
+                            setIsSubmitting(false);
+                        }
+                    } catch (payErr: any) {
+                        console.error("[CHECKOUT] Payment error:", payErr);
+                        setError(payErr?.response?.data?.message || "خطا در اتصال به درگاه پرداخت");
+                        setIsSubmitting(false);
+                    }
+                } else {
+                    // Cash on delivery - go directly to order page
+                    router.push(`/profile/orders/${orderId}`);
+                }
             } else {
                 setError(response.message || "خطا در ثبت سفارش");
             }
@@ -418,7 +483,10 @@ export default function CheckoutPage() {
             console.error("[CHECKOUT] Error placing order:", err);
             setError(err.message || "خطا در ثبت سفارش");
         } finally {
-            setIsSubmitting(false);
+            // Don't set isSubmitting to false if redirecting to payment
+            if (paymentMethod !== "online") {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -614,6 +682,31 @@ export default function CheckoutPage() {
                                 <div className="flex-1">
                                     <span className="block text-sm font-bold text-gray-900">پرداخت اینترنتی</span>
                                     <span className="text-xs text-gray-500 mt-0.5 block">پرداخت آنلاین با کلیه کارت‌های بانکی</span>
+
+                                    {/* Gateway Selection (Only visible if Online Payment is selected) */}
+                                    {paymentMethod === "online" && availableGateways.length > 0 && (
+                                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {availableGateways.map((gateway) => (
+                                                <label
+                                                    key={gateway.id}
+                                                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${selectedGateway === gateway.id
+                                                            ? "border-amber-500 bg-amber-50"
+                                                            : "border-gray-200 hover:border-gray-300"
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="gateway"
+                                                        value={gateway.id}
+                                                        checked={selectedGateway === gateway.id}
+                                                        onChange={() => setSelectedGateway(gateway.id)}
+                                                        className="w-3 h-3 text-amber-600 accent-amber-600"
+                                                    />
+                                                    <span className="text-sm text-gray-700">{gateway.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </label>
 
@@ -985,6 +1078,6 @@ export default function CheckoutPage() {
                     </SheetContent>
                 </Sheet>
             </div>
-        </ProtectedRoute >
+        </ProtectedRoute>
     );
 }

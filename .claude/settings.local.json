@@ -21,7 +21,8 @@
       "Bash(node -e:*)",
       "Bash(node:*)",
       "Bash(start:*)",
-      "Bash(server.log)"
+      "Bash(server.log)",
+      "Bash(if not exist \"f:\\frontend now2\\frontend\\src\\app\\admin\\settings\\payment\" mkdir \"f:\\frontend now2\\frontend\\src\\app\\admin\\settings\\payment\")"
     ],
     "deny": [],
     "ask": []

@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { Save, Bot, MessageSquare, Zap, AlertCircle } from "lucide-react";
+import { Save, Bot, MessageSquare, Zap, AlertCircle, Store, Mail, Phone, MapPin, CheckCircle } from "lucide-react";
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [settings, setSettings] = useState<any>(null);
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
     useEffect(() => {
         fetchSettings();
@@ -26,8 +27,10 @@ export default function SettingsPage() {
     const handleSave = async () => {
         try {
             setSaving(true);
+            setSaveSuccess(false);
             await api.put("/settings", settings);
-            alert("تنظیمات با موفقیت ذخیره شد");
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             console.error(err);
             alert("خطا در ذخیره تنظیمات");
@@ -55,9 +58,82 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-black text-gray-800">تنظیمات سایت</h1>
+        <div className="space-y-6">
+            {/* Store Information Section */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                    <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                        <Store size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-800">اطلاعات فروشگاه</h2>
+                        <p className="text-sm text-gray-500">تنظیمات عمومی سایت و فروشگاه</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Store Name */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <Store size={18} className="text-gray-400" />
+                            نام فروشگاه
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                            value={settings.storeName || ''}
+                            onChange={(e) => setSettings({ ...settings, storeName: e.target.value })}
+                            placeholder="نام فروشگاه خود را وارد کنید"
+                        />
+                    </div>
+
+                    {/* Store Email */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <Mail size={18} className="text-gray-400" />
+                            ایمیل فروشگاه
+                        </label>
+                        <input
+                            type="email"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                            value={settings.storeEmail || ''}
+                            onChange={(e) => setSettings({ ...settings, storeEmail: e.target.value })}
+                            placeholder="example@store.com"
+                            dir="ltr"
+                        />
+                    </div>
+
+                    {/* Store Phone */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <Phone size={18} className="text-gray-400" />
+                            شماره تماس
+                        </label>
+                        <input
+                            type="tel"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                            value={settings.storePhone || ''}
+                            onChange={(e) => setSettings({ ...settings, storePhone: e.target.value })}
+                            placeholder="021-12345678"
+                            dir="ltr"
+                        />
+                    </div>
+
+                    {/* Store Address */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <MapPin size={18} className="text-gray-400" />
+                            آدرس فروشگاه
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                            value={settings.storeAddress || ''}
+                            onChange={(e) => setSettings({ ...settings, storeAddress: e.target.value })}
+                            placeholder="آدرس کامل فروشگاه"
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* AI Settings Section */}
@@ -107,7 +183,7 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-xs text-gray-400 leading-relaxed flex items-start gap-1">
                             <AlertCircle size={12} className="mt-0.5 shrink-0" />
-                            تعداد پیام‌هایی که هر کاربر می‌تواند در طول ۲۴ ساعت به هوش مصنوعی ارسال کند. پس از رسیدن به این حد، کاربر باید تا روز بعد صبر کند.
+                            تعداد پیام‌هایی که هر کاربر می‌تواند در طول ۲۴ ساعت ارسال کند
                         </p>
                     </div>
 
@@ -127,22 +203,51 @@ export default function SettingsPage() {
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-bold">Token</span>
                         </div>
                         <p className="text-xs text-gray-400 leading-relaxed">
-                            حداکثر طول پاسخ هوش مصنوعی. هر 1000 توکن تقریباً معادل 750 کلمه است.
+                            حداکثر طول پاسخ هوش مصنوعی (1000 توکن ≈ 750 کلمه)
                         </p>
                     </div>
                 </div>
             </div>
 
+            {/* Info Box */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100">
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <AlertCircle size={20} className="text-amber-600" />
+                    توجه مهم
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                        <span className="text-amber-600 font-bold">•</span>
+                        <span>برای تنظیم <strong>درگاه‌های پرداخت</strong> (ZarinPal و Sadad)، از تب <strong>"درگاه‌های پرداخت"</strong> استفاده کنید</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-amber-600 font-bold">•</span>
+                        <span>تنظیمات هوش مصنوعی تنها در صورت وارد کردن API Key فعال می‌شود</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-amber-600 font-bold">•</span>
+                        <span>اطلاعات فروشگاه در ایمیل‌های سیستمی و فاکتورها استفاده می‌شود</span>
+                    </li>
+                </ul>
+            </div>
+
             {/* Save Button */}
-            <div className="flex justify-end pt-4">
+            <div className="flex items-center gap-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 bg-vita-600 hover:bg-vita-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-vita-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="flex items-center gap-2 bg-vita-600 hover:bg-vita-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
                     <Save size={20} />
                     {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
                 </button>
+
+                {saveSuccess && (
+                    <div className="flex items-center gap-2 text-green-600 font-bold animate-fade-in">
+                        <CheckCircle size={20} />
+                        تنظیمات با موفقیت ذخیره شد
+                    </div>
+                )}
             </div>
         </div>
     );

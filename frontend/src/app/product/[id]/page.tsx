@@ -16,6 +16,7 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
 import { useHistoryStore } from "@/store/historyStore";
+import ProductTabs from "@/components/product/ProductTabs";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -355,6 +356,27 @@ export default function ProductDetailPage() {
                 {/* Title & Rating */}
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col">
+                        {product.categoryPath && product.categoryPath.length > 0 ? (
+                            <div className="flex items-center gap-1 text-xs font-medium text-vita-600 mb-1">
+                                {product.categoryPath.map((cat, index) => (
+                                    <span key={cat.id} className="flex items-center">
+                                        {index > 0 && <span className="mx-1 text-gray-400">/</span>}
+                                        <Link
+                                            href={`/products?category=${cat.slug}${index === 0 && product.categoryPath!.length > 1 ? '&includeChildren=true' : ''}`}
+                                            className="hover:underline hover:text-vita-700 transition-colors"
+                                        >
+                                            {cat.name}
+                                        </Link>
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            product.category && (
+                                <span className="text-xs font-medium text-vita-600 mb-1 block">
+                                    {product.category}
+                                </span>
+                            )
+                        )}
                         <h1 className="text-lg font-bold text-gray-900 leading-snug">{product.title}</h1>
                         {product.enTitle && (
                             <span className="text-xs text-gray-400 font-mono mt-1">{product.enTitle}</span>
@@ -420,39 +442,8 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
 
-                {/* Description Section */}
-                {product.description && (
-                    <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                            <Info size={18} className="text-vita-600" /> توضیحات محصول
-                        </h3>
-                        <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
-                    </div>
-                )}
-
-                {/* Specifications Section */}
-                {product.specs && product.specs.length > 0 ? (
-                    <div className="mb-4">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                            <Info size={18} className="text-vita-600" /> مشخصات فنی
-                        </h3>
-                        <div className="space-y-2">
-                            {product.specs.map((spec, i) => (
-                                <div
-                                    key={i}
-                                    className="flex justify-between py-2 border-b border-gray-50 text-xs"
-                                >
-                                    <span className="text-gray-500">{spec.label}</span>
-                                    <span className="text-gray-800 font-medium">{spec.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mb-4 p-4 bg-gray-50 rounded-xl text-center">
-                        <p className="text-sm text-gray-500">مشخصات فنی این محصول ثبت نشده است</p>
-                    </div>
-                )}
+                {/* Product Tabs (Description, Specs, Reviews) */}
+                <ProductTabs product={product} />
 
             </div>
 

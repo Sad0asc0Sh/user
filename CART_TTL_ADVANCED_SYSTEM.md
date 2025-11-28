@@ -492,7 +492,7 @@ Headers:
 
 ## نکات امنیتی
 
-### 1. احراز هویت
+### 1. احراز‌هویت
 ```javascript
 router.post(
   '/admin/send-warnings',

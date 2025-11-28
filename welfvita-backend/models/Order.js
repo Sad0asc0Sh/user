@@ -101,6 +101,37 @@ const orderSchema = new mongoose.Schema(
       email_address: String,
     },
 
+    // Payment Gateway Fields
+    paymentGateway: {
+      type: String,
+      enum: ['zarinpal', 'sadad', 'none'],
+      default: 'none',
+    },
+
+    // ZarinPal Payment Fields
+    zarinpalAuthority: {
+      type: String,
+      trim: true,
+    },
+    zarinpalRefId: {
+      type: String,
+      trim: true,
+    },
+
+    // Sadad Payment Fields
+    sadadToken: {
+      type: String,
+      trim: true,
+    },
+    sadadOrderId: {
+      type: String,
+      trim: true,
+    },
+    sadadTraceNumber: {
+      type: String,
+      trim: true,
+    },
+
     // قیمت‌ها
     itemsPrice: {
       type: Number,

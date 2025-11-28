@@ -15,7 +15,7 @@ import {
   Select,
   Divider,
 } from 'antd'
-import { SaveOutlined, ReloadOutlined } from '@ant-design/icons'
+import { SaveOutlined, ReloadOutlined, SendOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import jalaliday from 'jalaliday'
 import api from '../../api'
@@ -53,7 +53,9 @@ function CustomerProfile() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [sendingNotification, setSendingNotification] = useState(false)
   const [form] = Form.useForm()
+  const [notificationForm] = Form.useForm()
 
   const currentRole = useAuthStore((state) => state.user?.role || 'user')
   const selectableRoles =
@@ -136,6 +138,26 @@ function CustomerProfile() {
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSendNotification = async (values) => {
+    setSendingNotification(true)
+    try {
+      await api.post('/notifications/send', {
+        userId: id,
+        title: values.title,
+        message: values.message,
+        type: values.type,
+      })
+      message.success('اعلان با موفقیت ارسال شد')
+      notificationForm.resetFields()
+    } catch (err) {
+      const errorMsg =
+        err?.response?.data?.message || 'خطا در ارسال اعلان'
+      message.error(errorMsg)
+    } finally {
+      setSendingNotification(false)
     }
   }
 
@@ -324,6 +346,57 @@ function CustomerProfile() {
               showSizeChanger: true,
             }}
           />
+        </div>
+      ),
+    },
+    {
+      key: 'notifications',
+      label: 'ارسال پیام',
+      children: (
+        <div style={{ maxWidth: 600 }}>
+          <h3>ارسال پیام به کاربر</h3>
+          <Form
+            form={notificationForm}
+            layout="vertical"
+            onFinish={handleSendNotification}
+            initialValues={{ type: 'info' }}
+          >
+            <Form.Item
+              name="title"
+              label="عنوان پیام"
+              rules={[{ required: true, message: 'لطفاً عنوان پیام را وارد کنید' }]}
+            >
+              <Input placeholder="مثال: خوش‌آمدید" />
+            </Form.Item>
+
+            <Form.Item
+              name="message"
+              label="متن پیام"
+              rules={[{ required: true, message: 'لطفاً متن پیام را وارد کنید' }]}
+            >
+              <Input.TextArea rows={4} placeholder="متن پیام خود را بنویسید..." />
+            </Form.Item>
+
+            <Form.Item name="type" label="نوع پیام">
+              <Select>
+                <Select.Option value="info">اطلاع‌رسانی (آبی)</Select.Option>
+                <Select.Option value="success">موفقیت (سبز)</Select.Option>
+                <Select.Option value="warning">هشدار (نارنجی)</Select.Option>
+                <Select.Option value="error">خطا (قرمز)</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                htmlType="submit"
+                loading={sendingNotification}
+              >
+                ارسال پیام
+              </Button>
+            </Form.Item>
+          </Form>
         </div>
       ),
     },

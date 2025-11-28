@@ -1,12 +1,59 @@
 const Settings = require('../models/Settings')
 
 // دریافت تنظیمات (سند تک‌مثالی). در صورت عدم وجود، ایجاد می‌شود.
+// دریافت تنظیمات عمومی (بدون نیاز به احراز هویت)
+exports.getPublicSettings = async (req, res) => {
+  try {
+    const settings = await Settings.findOne({ singletonKey: 'main_settings' }).lean()
+
+    if (!settings) {
+      return res.json({
+        success: true,
+        data: {
+          storeName: 'فروشگاه من',
+          paymentConfig: { activeGateway: 'zarinpal' }
+        }
+      })
+    }
+
+    // فقط فیلدهای عمومی را برمی‌گردانیم
+    const publicData = {
+      storeName: settings.storeName,
+      storeEmail: settings.storeEmail,
+      storePhone: settings.storePhone,
+      storeAddress: settings.storeAddress,
+      paymentConfig: {
+        activeGateway: settings.paymentConfig?.activeGateway || 'zarinpal',
+        // می‌توانیم وضعیت فعال بودن درگاه‌ها را هم بفرستیم تا فرانت تصمیم بگیرد
+        zarinpal: { isActive: settings.paymentConfig?.zarinpal?.isActive || false },
+        sadad: { isActive: settings.paymentConfig?.sadad?.isActive || false },
+      },
+      cartSettings: {
+        cartTTLHours: settings.cartSettings?.cartTTLHours || 1,
+        expiryWarningEnabled: settings.cartSettings?.expiryWarningEnabled || false,
+        expiryWarningMinutes: settings.cartSettings?.expiryWarningMinutes || 30,
+      }
+    }
+
+    res.json({
+      success: true,
+      data: publicData,
+    })
+  } catch (error) {
+    console.error('Error fetching public settings:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در دریافت تنظیمات عمومی',
+    })
+  }
+}
+
 // دریافت تنظیمات (سند تک‌مثالی). در صورت عدم وجود، ایجاد می‌شود.
 exports.getSettings = async (req, res) => {
   try {
     // Select sensitive fields to check if they exist
     let settings = await Settings.findOne({ singletonKey: 'main_settings' })
-      .select('+aiConfig.apiKey +paymentGatewayKeys.apiKey +paymentGatewayKeys.apiSecret +notificationSettings.smsApiKey +kycSettings.apiKey +kycSettings.clientId')
+      .select('+aiConfig.apiKey +paymentGatewayKeys.apiKey +paymentGatewayKeys.apiSecret +notificationSettings.smsApiKey +kycSettings.apiKey +kycSettings.clientId +paymentConfig.zarinpal.merchantId +paymentConfig.sadad.merchantId +paymentConfig.sadad.terminalId +paymentConfig.sadad.terminalKey')
 
     if (!settings) {
       settings = await Settings.create({})
@@ -22,6 +69,12 @@ exports.getSettings = async (req, res) => {
     if (settingsObj.notificationSettings?.smsApiKey) settingsObj.notificationSettings.smsApiKey = '****';
     if (settingsObj.kycSettings?.apiKey) settingsObj.kycSettings.apiKey = '****';
     if (settingsObj.kycSettings?.clientId) settingsObj.kycSettings.clientId = '****';
+
+    // Mask payment gateway credentials
+    if (settingsObj.paymentConfig?.zarinpal?.merchantId) settingsObj.paymentConfig.zarinpal.merchantId = '****';
+    if (settingsObj.paymentConfig?.sadad?.merchantId) settingsObj.paymentConfig.sadad.merchantId = '****';
+    if (settingsObj.paymentConfig?.sadad?.terminalId) settingsObj.paymentConfig.sadad.terminalId = '****';
+    if (settingsObj.paymentConfig?.sadad?.terminalKey) settingsObj.paymentConfig.sadad.terminalKey = '****';
 
     res.json({
       success: true,
@@ -101,6 +154,50 @@ exports.updateSettings = async (req, res) => {
       if (ai.customSystemPrompt !== undefined) settings.aiConfig.customSystemPrompt = ai.customSystemPrompt
       // Only update apiKey if provided and not masked
       if (ai.apiKey && ai.apiKey !== '****') settings.aiConfig.apiKey = ai.apiKey
+    }
+
+    // For nested objects (Payment Config - Multi-Gateway)
+    if (updates.paymentConfig) {
+      const payment = updates.paymentConfig
+
+      // Update active gateway
+      if (payment.activeGateway) {
+        settings.paymentConfig.activeGateway = payment.activeGateway
+      }
+
+      // Update ZarinPal config
+      if (payment.zarinpal) {
+        const zarinpal = payment.zarinpal
+        if (zarinpal.merchantId && zarinpal.merchantId !== '****') {
+          settings.paymentConfig.zarinpal.merchantId = zarinpal.merchantId
+        }
+        if (zarinpal.isSandbox !== undefined) {
+          settings.paymentConfig.zarinpal.isSandbox = zarinpal.isSandbox
+        }
+        if (zarinpal.isActive !== undefined) {
+          settings.paymentConfig.zarinpal.isActive = zarinpal.isActive
+        }
+      }
+
+      // Update Sadad config
+      if (payment.sadad) {
+        const sadad = payment.sadad
+        if (sadad.merchantId && sadad.merchantId !== '****') {
+          settings.paymentConfig.sadad.merchantId = sadad.merchantId
+        }
+        if (sadad.terminalId && sadad.terminalId !== '****') {
+          settings.paymentConfig.sadad.terminalId = sadad.terminalId
+        }
+        if (sadad.terminalKey && sadad.terminalKey !== '****') {
+          settings.paymentConfig.sadad.terminalKey = sadad.terminalKey
+        }
+        if (sadad.isSandbox !== undefined) {
+          settings.paymentConfig.sadad.isSandbox = sadad.isSandbox
+        }
+        if (sadad.isActive !== undefined) {
+          settings.paymentConfig.sadad.isActive = sadad.isActive
+        }
+      }
     }
 
     await settings.save()

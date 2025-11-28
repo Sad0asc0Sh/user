@@ -161,6 +161,10 @@ app.use('/api/reports', reportRoutes)
 const chatRoutes = require('./routes/chatRoutes')
 app.use('/api/chat', chatRoutes)
 
+// Notification Routes
+const notificationRoutes = require('./routes/notifications')
+app.use('/api/notifications', notificationRoutes)
+
 // Admin Management Routes
 const adminManagementRoutes = require('./routes/adminManagement')
 app.use('/api/admin/management', adminManagementRoutes)

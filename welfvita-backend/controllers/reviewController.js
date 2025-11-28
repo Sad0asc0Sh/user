@@ -1,4 +1,123 @@
 const Review = require('../models/Review')
+const Product = require('../models/Product')
+
+/**
+ * @desc    Get reviews for a product (Public)
+ * @route   GET /api/reviews/product/:productId
+ * @access  Public
+ */
+exports.getProductReviews = async (req, res) => {
+  try {
+    const { productId } = req.params
+    const page = parseInt(req.query.page, 10) || 1
+    const limit = parseInt(req.query.limit, 10) || 10
+    const skip = (page - 1) * limit
+
+    const reviews = await Review.find({ product: productId, isApproved: true })
+      .populate('user', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+
+    const total = await Review.countDocuments({ product: productId, isApproved: true })
+
+    res.status(200).json({
+      success: true,
+      data: reviews,
+      pagination: {
+        page,
+        pages: Math.ceil(total / limit),
+        total,
+      },
+    })
+  } catch (error) {
+    console.error('Error getting reviews:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    })
+  }
+}
+
+/**
+ * @desc    Add a review
+ * @route   POST /api/reviews/:productId
+ * @access  Private
+ */
+exports.addReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body
+    const { productId } = req.params
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      })
+    }
+
+    const product = await Product.findById(productId)
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      })
+    }
+
+    // Validate input
+    if (!rating || isNaN(Number(rating))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be a number',
+      })
+    }
+
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment is required',
+      })
+    }
+
+    const review = await Review.create({
+      user: req.user._id,
+      product: productId,
+      rating: Number(rating),
+      comment,
+      isApproved: false, // Default to pending
+    })
+
+    res.status(201).json({
+      success: true,
+      message: 'Review added successfully. It will be visible after approval.',
+      data: review,
+    })
+  } catch (error) {
+    console.error('Error adding review:', error)
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((val) => val.message)
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', '),
+        error: error.message,
+      })
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'شما قبلاً برای این محصول نظر ثبت کرده‌اید.',
+      })
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    })
+  }
+}
 
 /**
  * @desc    دریافت لیست تمام نظرات (برای ادمین)
@@ -30,7 +149,7 @@ exports.getAllReviewsAsAdmin = async (req, res) => {
     const total = await Review.countDocuments(filter)
     const reviews = await Review.find(filter)
       .populate('user', 'name email')
-      .populate('product', 'name slug images')
+      .populate('product', 'name slug images sku')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

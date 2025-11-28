@@ -11,7 +11,8 @@ import {
     Menu,
     X,
     Bell,
-    Search
+    Search,
+    MessageSquare
 } from "lucide-react";
 import { authService } from "@/services/authService";
 
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const menuItems = [
         { icon: LayoutDashboard, label: "داشبورد", href: "/admin" },
         { icon: ShoppingBag, label: "سفارشات", href: "/admin/orders" },
+        { icon: MessageSquare, label: "نظرات", href: "/admin/reviews" },
         { icon: Users, label: "کاربران", href: "/admin/users" },
         { icon: Settings, label: "تنظیمات", href: "/admin/settings" },
     ];
@@ -87,8 +89,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     key={item.href}
                                     href={item.href}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                                            ? "bg-vita-50 text-vita-600 font-bold shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                        ? "bg-vita-50 text-vita-600 font-bold shadow-sm"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                         }`}
                                 >
                                     <Icon size={20} />

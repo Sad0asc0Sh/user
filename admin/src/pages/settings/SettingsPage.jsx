@@ -72,6 +72,21 @@ function SettingsPage() {
           userDailyLimit: data.aiConfig?.userDailyLimit || 20,
           customSystemPrompt: data.aiConfig?.customSystemPrompt || '',
         },
+        paymentConfig: {
+          activeGateway: data.paymentConfig?.activeGateway || 'zarinpal',
+          zarinpal: {
+            merchantId: data.paymentConfig?.zarinpal?.merchantId || '',
+            isSandbox: data.paymentConfig?.zarinpal?.isSandbox !== false,
+            isActive: data.paymentConfig?.zarinpal?.isActive || false,
+          },
+          sadad: {
+            merchantId: data.paymentConfig?.sadad?.merchantId || '',
+            terminalId: data.paymentConfig?.sadad?.terminalId || '',
+            terminalKey: data.paymentConfig?.sadad?.terminalKey || '',
+            isSandbox: data.paymentConfig?.sadad?.isSandbox !== false,
+            isActive: data.paymentConfig?.sadad?.isActive || false,
+          },
+        },
 
       })
     } catch (err) {
@@ -149,28 +164,54 @@ function SettingsPage() {
         }
       }
 
-      if (values.paymentGatewayKeys) {
-        const pgk = {}
-
-        if (
-          values.paymentGatewayKeys.apiKey !== undefined &&
-          values.paymentGatewayKeys.apiKey !== null &&
-          values.paymentGatewayKeys.apiKey !== ''
-        ) {
-          pgk.apiKey = values.paymentGatewayKeys.apiKey
+      if (values.paymentConfig) {
+        const pc = {
+          activeGateway: values.paymentConfig.activeGateway || 'zarinpal'
         }
 
-        if (
-          values.paymentGatewayKeys.apiSecret !== undefined &&
-          values.paymentGatewayKeys.apiSecret !== null &&
-          values.paymentGatewayKeys.apiSecret !== ''
-        ) {
-          pgk.apiSecret = values.paymentGatewayKeys.apiSecret
+        // ZarinPal settings
+        if (values.paymentConfig.zarinpal) {
+          pc.zarinpal = {}
+
+          if (values.paymentConfig.zarinpal.merchantId && values.paymentConfig.zarinpal.merchantId !== '****') {
+            pc.zarinpal.merchantId = values.paymentConfig.zarinpal.merchantId
+          }
+
+          if (values.paymentConfig.zarinpal.isSandbox !== undefined) {
+            pc.zarinpal.isSandbox = values.paymentConfig.zarinpal.isSandbox
+          }
+
+          if (values.paymentConfig.zarinpal.isActive !== undefined) {
+            pc.zarinpal.isActive = values.paymentConfig.zarinpal.isActive
+          }
         }
 
-        if (Object.keys(pgk).length > 0) {
-          payload.paymentGatewayKeys = pgk
+        // Sadad settings
+        if (values.paymentConfig.sadad) {
+          pc.sadad = {}
+
+          if (values.paymentConfig.sadad.merchantId && values.paymentConfig.sadad.merchantId !== '****') {
+            pc.sadad.merchantId = values.paymentConfig.sadad.merchantId
+          }
+
+          if (values.paymentConfig.sadad.terminalId && values.paymentConfig.sadad.terminalId !== '****') {
+            pc.sadad.terminalId = values.paymentConfig.sadad.terminalId
+          }
+
+          if (values.paymentConfig.sadad.terminalKey && values.paymentConfig.sadad.terminalKey !== '****') {
+            pc.sadad.terminalKey = values.paymentConfig.sadad.terminalKey
+          }
+
+          if (values.paymentConfig.sadad.isSandbox !== undefined) {
+            pc.sadad.isSandbox = values.paymentConfig.sadad.isSandbox
+          }
+
+          if (values.paymentConfig.sadad.isActive !== undefined) {
+            pc.sadad.isActive = values.paymentConfig.sadad.isActive
+          }
         }
+
+        payload.paymentConfig = pc
       }
 
       if (values.cartSettings) {
@@ -285,22 +326,162 @@ function SettingsPage() {
     },
     {
       key: 'payment',
-      label: 'تنظیمات درگاه پرداخت',
+      label: '💳 درگاه‌های پرداخت',
       children: (
         <>
+          <Alert
+            message="✅ سیستم جدید درگاه‌های پرداخت چندگانه"
+            description="پشتیبانی از ZarinPal و Sadad با امکان تعویض آسان بین درگاه‌ها"
+            type="success"
+            showIcon
+            style={{ marginBottom: 24, backgroundColor: '#f6ffed', borderColor: '#52c41a' }}
+          />
+
+          {/* Active Gateway Selector */}
           <Form.Item
-            name={['paymentGatewayKeys', 'apiKey']}
-            label="API Key درگاه پرداخت"
+            noStyle
+            shouldUpdate={(prev, curr) => prev.paymentConfig?.activeGateway !== curr.paymentConfig?.activeGateway}
           >
-            <Input.Password placeholder="********" />
+            {({ getFieldValue }) => {
+              const activeGateway = getFieldValue(['paymentConfig', 'activeGateway']) || 'zarinpal'
+
+              return (
+                <Form.Item
+                  name={['paymentConfig', 'activeGateway']}
+                  label="🎯 انتخاب درگاه فعال"
+                  extra="درگاهی که برای پرداخت‌های جدید استفاده می‌شود"
+                >
+                  <Select size="large">
+                    <Select.Option value="zarinpal">
+                      <span style={{ fontSize: '16px' }}>⚡ زرین‌پال (ZarinPal)</span>
+                    </Select.Option>
+                    <Select.Option value="sadad">
+                      <span style={{ fontSize: '16px' }}>🏦 سداد (بانک ملی)</span>
+                    </Select.Option>
+                  </Select>
+                </Form.Item>
+              )
+            }}
           </Form.Item>
 
-          <Form.Item
-            name={['paymentGatewayKeys', 'apiSecret']}
-            label="API Secret درگاه پرداخت"
+          <Divider>تنظیمات ZarinPal</Divider>
+
+          <Card
+            title="⚡ زرین‌پال (ZarinPal)"
+            style={{ marginBottom: 24 }}
+            extra={
+              <Form.Item
+                name={['paymentConfig', 'zarinpal', 'isActive']}
+                valuePropName="checked"
+                style={{ margin: 0 }}
+              >
+                <Switch checkedChildren="فعال" unCheckedChildren="غیرفعال" />
+              </Form.Item>
+            }
           >
-            <Input.Password placeholder="********" />
-          </Form.Item>
+            <Form.Item
+              name={['paymentConfig', 'zarinpal', 'merchantId']}
+              label="Merchant ID (کد پذیرنده)"
+              rules={[
+                {
+                  pattern: /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,
+                  message: 'فرمت Merchant ID معتبر نیست (باید 36 کاراکتر UUID باشد)'
+                }
+              ]}
+              extra={
+                <div>
+                  <div>فرمت: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</div>
+                  <a href="https://panel.zarinpal.com" target="_blank" rel="noreferrer">
+                    دریافت از پنل زرین‌پال →
+                  </a>
+                </div>
+              }
+            >
+              <Input.Password
+                placeholder="********-****-****-****-************"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['paymentConfig', 'zarinpal', 'isSandbox']}
+              valuePropName="checked"
+              extra="برای تست بدون پرداخت واقعی فعال کنید"
+            >
+              <Switch checkedChildren="🧪 Sandbox" unCheckedChildren="🔴 Production" />
+            </Form.Item>
+          </Card>
+
+          <Divider>تنظیمات Sadad</Divider>
+
+          <Card
+            title="🏦 سداد (بانک ملی)"
+            style={{ marginBottom: 24 }}
+            extra={
+              <Form.Item
+                name={['paymentConfig', 'sadad', 'isActive']}
+                valuePropName="checked"
+                style={{ margin: 0 }}
+              >
+                <Switch checkedChildren="فعال" unCheckedChildren="غیرفعال" />
+              </Form.Item>
+            }
+          >
+            <Form.Item
+              name={['paymentConfig', 'sadad', 'merchantId']}
+              label="Merchant ID (کد پذیرنده)"
+              extra="کد پذیرنده که از بانک ملی دریافت کرده‌اید"
+            >
+              <Input.Password
+                placeholder="********"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['paymentConfig', 'sadad', 'terminalId']}
+              label="Terminal ID (شناسه ترمینال)"
+              extra="شناسه ترمینال از بانک ملی"
+            >
+              <Input.Password
+                placeholder="********"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['paymentConfig', 'sadad', 'terminalKey']}
+              label="Terminal Key (کلید ترمینال)"
+              extra="کلید رمزنگاری ترمینال"
+            >
+              <Input.Password
+                placeholder="********"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['paymentConfig', 'sadad', 'isSandbox']}
+              valuePropName="checked"
+              extra="برای تست بدون پرداخت واقعی فعال کنید"
+            >
+              <Switch checkedChildren="🧪 Sandbox" unCheckedChildren="🔴 Production" />
+            </Form.Item>
+          </Card>
+
+          <Alert
+            message="⚠️ نکات مهم"
+            description={
+              <ul style={{ margin: 0, paddingRight: 20 }}>
+                <li>فقط یک درگاه می‌تواند به عنوان درگاه فعال انتخاب شود</li>
+                <li>قبل از فعال‌سازی درگاه، حتماً اطلاعات آن را کامل کنید</li>
+                <li>در حالت Sandbox می‌توانید بدون پرداخت واقعی تست کنید</li>
+                <li>اطلاعات احراز هویت به صورت ایمن در دیتابیس ذخیره می‌شوند</li>
+              </ul>
+            }
+            type="warning"
+            showIcon
+          />
         </>
       ),
     },

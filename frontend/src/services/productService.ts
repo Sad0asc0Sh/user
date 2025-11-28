@@ -13,11 +13,19 @@ export interface ProductSpec {
   value: string;
 }
 
+// Category Path Interface
+export interface CategoryPathItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 // Frontend Product Interface (matching our UI expectations)
 export interface Product {
   id: string;
   name: string;
   title: string; // Display name (same as name for now)
+  slug?: string;
   enTitle?: string; // English title (optional)
   price: number;
   oldPrice?: number; // Original price before discount
@@ -25,6 +33,7 @@ export interface Product {
   image: string;
   images: string[]; // Gallery images
   category: string;
+  categoryPath?: CategoryPathItem[]; // Structured category hierarchy
   brand?: string;
   description?: string;
   rating: number;
@@ -42,6 +51,10 @@ export interface Product {
   isSpecialOffer?: boolean;
   specialOfferEndTime?: string; // ISO date string
 }
+
+// ... (BackendProduct interface remains same)
+
+
 
 // Backend MongoDB Product Interface (typical structure)
 interface BackendProduct {
@@ -144,6 +157,7 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
     // Name/Title mappings
     name: backendProduct.name,
     title: backendProduct.name, // Use name as title
+    slug: (backendProduct as any).slug, // Ensure slug is mapped if available
     enTitle: backendProduct.enTitle,
 
     // Price calculations
@@ -156,9 +170,47 @@ const mapBackendToFrontend = (backendProduct: BackendProduct): Product => {
     image: imageArray[0], // First image as main image
     images: imageArray, // All images for gallery
 
-    // Category and Brand
-    category: backendProduct.category || "عمومی",
-    brand: backendProduct.brand,
+    // Category and Brand (Handle both string ID and populated object)
+    category: (() => {
+      let display = "عمومی";
+      if (typeof backendProduct.category === 'object' && backendProduct.category !== null) {
+        const cat = backendProduct.category as any;
+        if (cat.parent && cat.parent.name) {
+          display = `${cat.parent.name} > ${cat.name}`;
+        } else {
+          display = cat.name;
+        }
+      } else if (backendProduct.category) {
+        display = backendProduct.category;
+      }
+      return display;
+    })(),
+
+    categoryPath: (() => {
+      const path: CategoryPathItem[] = [];
+      if (typeof backendProduct.category === 'object' && backendProduct.category !== null) {
+        const cat = backendProduct.category as any;
+        // Add parent if exists
+        if (cat.parent && cat.parent.name) {
+          path.push({
+            id: cat.parent._id,
+            name: cat.parent.name,
+            slug: cat.parent.slug || cat.parent._id
+          });
+        }
+        // Add current category
+        path.push({
+          id: cat._id,
+          name: cat.name,
+          slug: cat.slug || cat._id
+        });
+      }
+      return path;
+    })(),
+
+    brand: typeof backendProduct.brand === 'object' && backendProduct.brand !== null
+      ? (backendProduct.brand as any).name
+      : backendProduct.brand,
 
     // Description
     description: backendProduct.description,

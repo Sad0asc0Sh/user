@@ -291,6 +291,15 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
+      .populate('brand', 'name logo')
+      .populate({
+        path: 'category',
+        select: 'name slug parent',
+        populate: {
+          path: 'parent',
+          select: 'name slug',
+        },
+      })
     if (!product) {
       return res.status(404).json({
         success: false,

@@ -1,5 +1,6 @@
 const Order = require('../models/Order')
 const Cart = require('../models/Cart')
+const paymentService = require('../utils/paymentService')
 
 // ============================================
 // POST /api/orders - ایجاد سفارش جدید (Customer-Facing)
@@ -18,14 +19,32 @@ exports.createOrder = async (req, res) => {
       totalDiscount,
     } = req.body
 
+    // اعتبارسنجی کاربر
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'کاربر شناسایی نشد. لطفاً مجدداً وارد شوید.',
+      })
+    }
+
     const userId = req.user._id
 
-    // اعتبارسنجی
+    // اعتبارسنجی سبد خرید
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'سبد خرید خالی است',
       })
+    }
+
+    // اعتبارسنجی آیتم‌های سفارش
+    for (const item of orderItems) {
+      if (!item.product || !item.product.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: `شناسه محصول نامعتبر است: ${item.name || 'نامشخص'}`,
+        })
+      }
     }
 
     if (!shippingAddress) {
@@ -70,7 +89,7 @@ exports.createOrder = async (req, res) => {
     console.error('Error creating order:', error)
     res.status(500).json({
       success: false,
-      message: 'خطا در ثبت سفارش',
+      message: `خطا در ثبت سفارش: ${error.message}`,
       error: error.message,
     })
   }
@@ -306,6 +325,228 @@ exports.getMyOrders = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'خطا در دریافت سفارشات',
+      error: error.message,
+    })
+  }
+}
+
+// ============================================
+// POST /api/orders/:id/pay - شروع فرآیند پرداخت
+// ============================================
+exports.payOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id
+
+    // پیدا کردن سفارش
+    const order = await Order.findById(orderId).populate('user', 'email phone')
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'سفارش مورد نظر یافت نشد',
+      })
+    }
+
+    // بررسی مالکیت سفارش
+    const isOwner = order.user._id.toString() === req.user._id.toString()
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin'
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'شما اجازه دسترسی به این سفارش را ندارید',
+      })
+    }
+
+    // بررسی اینکه آیا قبلاً پرداخت شده
+    if (order.isPaid) {
+      return res.status(400).json({
+        success: false,
+        message: 'این سفارش قبلاً پرداخت شده است',
+      })
+    }
+
+    // URL بازگشت بعد از پرداخت
+    const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/result`
+
+    // دریافت درگاه انتخابی از درخواست (اگر ارسال شده باشد)
+    const selectedGateway = req.body.gateway || req.query.gateway
+
+    // درخواست پرداخت از درگاه فعال
+    const paymentRequest = await paymentService.requestPayment({
+      amount: order.totalPrice, // مبلغ به تومان
+      callbackUrl: callbackUrl,
+      description: `پرداخت سفارش #${order._id.toString().substring(0, 8)}`,
+      email: order.user.email || '',
+      mobile: order.user.phone || order.shippingAddress.phone || '',
+      orderId: order._id.toString(), // برای Sadad الزامی
+      gatewayName: selectedGateway, // ارسال نام درگاه انتخابی
+    })
+
+    // ذخیره اطلاعات پرداخت در سفارش بر اساس درگاه
+    order.paymentGateway = paymentRequest.gateway
+
+    if (paymentRequest.gateway === 'zarinpal') {
+      order.zarinpalAuthority = paymentRequest.authority
+    } else if (paymentRequest.gateway === 'sadad') {
+      order.sadadToken = paymentRequest.token
+      order.sadadOrderId = paymentRequest.orderId
+    }
+
+    await order.save()
+
+    res.json({
+      success: true,
+      message: 'درخواست پرداخت با موفقیت ایجاد شد',
+      data: {
+        paymentUrl: paymentRequest.url,
+        authority: paymentRequest.authority, // برای ZarinPal
+        token: paymentRequest.token, // برای Sadad
+        gateway: paymentRequest.gateway,
+      },
+    })
+  } catch (error) {
+    console.error('Error initiating payment:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'خطا در ایجاد درخواست پرداخت',
+      error: error.message,
+    })
+  }
+}
+
+// ============================================
+// POST /api/orders/verify-payment - تایید پرداخت
+// ============================================
+exports.verifyPayment = async (req, res) => {
+  try {
+    const { Authority, Status, Token, ResCode, OrderId } = req.body
+
+    let order = null
+
+    // پیدا کردن سفارش بر اساس نوع درگاه
+    if (Authority) {
+      // ZarinPal
+      order = await Order.findOne({ zarinpalAuthority: Authority })
+    } else if (Token || OrderId) {
+      // Sadad
+      order = await Order.findOne({
+        $or: [{ sadadToken: Token }, { sadadOrderId: OrderId }],
+      })
+    }
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'سفارش مورد نظر یافت نشد',
+      })
+    }
+
+    // بررسی اینکه آیا کاربر لغو کرده
+    if (Status === 'NOK' || Status === 'Cancel' || ResCode === '17') {
+      return res.status(400).json({
+        success: false,
+        message: 'پرداخت توسط کاربر لغو شد',
+        orderId: order._id,
+      })
+    }
+
+    // بررسی اینکه آیا قبلاً تایید شده
+    if (order.isPaid) {
+      return res.json({
+        success: true,
+        message: 'این سفارش قبلاً تایید شده است',
+        data: {
+          orderId: order._id,
+          refId: order.zarinpalRefId || order.sadadTraceNumber,
+          isPaid: true,
+        },
+      })
+    }
+
+    // تعیین نوع درگاه
+    const gateway = order.paymentGateway || 'zarinpal'
+
+    // تایید پرداخت از درگاه
+    const verifyParams = {
+      gateway,
+      amount: order.totalPrice,
+    }
+
+    if (gateway === 'zarinpal') {
+      verifyParams.authority = Authority
+    } else if (gateway === 'sadad') {
+      verifyParams.token = Token || order.sadadToken
+      verifyParams.orderId = OrderId || order.sadadOrderId
+    }
+
+    const verifyResult = await paymentService.verifyPayment(verifyParams)
+
+    if (verifyResult.success) {
+      // به‌روزرسانی سفارش
+      order.isPaid = true
+      order.paidAt = new Date()
+      order.orderStatus = 'Processing' // تغییر وضعیت به "در حال پردازش"
+
+      // ذخیره اطلاعات تایید بر اساس درگاه
+      if (gateway === 'zarinpal') {
+        order.zarinpalRefId = verifyResult.refId
+        order.paymentResult = {
+          id: verifyResult.refId,
+          status: 'success',
+          update_time: new Date().toISOString(),
+        }
+      } else if (gateway === 'sadad') {
+        order.sadadTraceNumber = verifyResult.traceNumber
+        order.paymentResult = {
+          id: verifyResult.refId,
+          status: 'success',
+          update_time: new Date().toISOString(),
+        }
+      }
+
+      await order.save()
+
+      // Audit Log
+      const { logAction } = require('../utils/auditLogger')
+      await logAction({
+        action: 'PAYMENT_VERIFIED',
+        entity: 'Order',
+        entityId: order._id,
+        userId: order.user,
+        details: {
+          gateway,
+          refId: verifyResult.refId,
+          amount: order.totalPrice,
+          authority: Authority,
+          token: Token,
+        },
+      })
+
+      res.json({
+        success: true,
+        message: 'پرداخت با موفقیت انجام شد',
+        data: {
+          orderId: order._id,
+          refId: verifyResult.refId,
+          isPaid: true,
+          cardPan: verifyResult.cardPan,
+          gateway,
+        },
+      })
+    } else {
+      res.status(400).json({
+        success: false,
+        message: verifyResult.message || 'تایید پرداخت ناموفق بود',
+        code: verifyResult.code,
+        orderId: order._id,
+      })
+    }
+  } catch (error) {
+    console.error('Error verifying payment:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در تایید پرداخت',
       error: error.message,
     })
   }

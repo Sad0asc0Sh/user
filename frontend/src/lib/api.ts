@@ -56,7 +56,7 @@ api.interceptors.response.use(
           console.error("Resource not found");
           break;
         case 500:
-          console.error("Server error - Please try again later");
+          console.error("Server error:", data?.error || data?.message || "Unknown server error");
           break;
         default:
           console.error(`Error: ${data?.message || "Something went wrong"}`);

@@ -1,12 +1,17 @@
-"use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronDown, Loader2, Package, AlertCircle } from "lucide-react";
 import { categoryService, Category } from "@/services/categoryService";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-export default function CategoriesContent() {
+interface CategoriesContentProps {
+    onClose?: () => void;
+}
+
+export default function CategoriesContent({ onClose }: CategoriesContentProps) {
+    const router = useRouter();
     const [categoryTree, setCategoryTree] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,6 +53,11 @@ export default function CategoriesContent() {
     const handleCategoryChange = (id: string) => {
         setActiveId(id);
         setExpandedGroups([]);
+    };
+
+    const handleNavigation = (url: string) => {
+        if (onClose) onClose();
+        router.push(url);
     };
 
     // Loading State
@@ -151,12 +161,12 @@ export default function CategoriesContent() {
                     </span>
                     <div className="h-px flex-1 bg-gray-100" />
                     {activeCategory && (
-                        <Link
-                            href={`/products?category=${activeCategory.slug}`}
+                        <button
+                            onClick={() => handleNavigation(`/products?category=${activeCategory.slug}`)}
                             className="text-[10px] text-vita-600 flex items-center hover:text-vita-700 transition-colors"
                         >
                             مشاهده همه <ChevronLeft size={12} />
-                        </Link>
+                        </button>
                     )}
                 </div>
 
@@ -181,7 +191,13 @@ export default function CategoriesContent() {
                                         <div key={subCategory._id} className="border-b border-gray-100 last:border-0 pb-2">
                                             {/* Accordion Header */}
                                             <button
-                                                onClick={() => hasGrandChildren ? toggleGroup(subCategory._id) : null}
+                                                onClick={() => {
+                                                    if (hasGrandChildren) {
+                                                        toggleGroup(subCategory._id);
+                                                    } else {
+                                                        handleNavigation(`/products?category=${subCategory.slug}`);
+                                                    }
+                                                }}
                                                 className="w-full flex items-center justify-between py-3 text-gray-700 font-medium text-sm hover:text-vita-600 transition-colors"
                                             >
                                                 <span className="flex items-center gap-2">
@@ -197,8 +213,10 @@ export default function CategoriesContent() {
                                                     )}
                                                     {subCategory.name}
                                                 </span>
-                                                {hasGrandChildren && (
+                                                {hasGrandChildren ? (
                                                     isExpanded ? <ChevronDown size={16} /> : <ChevronLeft size={16} className="text-gray-400" />
+                                                ) : (
+                                                    <ChevronLeft size={16} className="text-gray-400" />
                                                 )}
                                             </button>
 
@@ -212,10 +230,10 @@ export default function CategoriesContent() {
                                                 >
                                                     <div className="grid grid-cols-3 gap-4 py-2 pr-2">
                                                         {subCategory.children!.map((item) => (
-                                                            <Link
+                                                            <button
                                                                 key={item._id}
-                                                                href={`/products?category=${item.slug}`}
-                                                                className="flex flex-col items-center gap-2 cursor-pointer group"
+                                                                onClick={() => handleNavigation(`/products?category=${item.slug}`)}
+                                                                className="flex flex-col items-center gap-2 cursor-pointer group w-full"
                                                             >
                                                                 <div className="w-14 h-14 bg-gray-50 rounded-full p-2 flex items-center justify-center border border-gray-100 group-hover:border-vita-200 transition-colors overflow-hidden">
                                                                     {item.image?.url ? (
@@ -234,7 +252,7 @@ export default function CategoriesContent() {
                                                                 <span className="text-[10px] text-center text-gray-600 leading-tight group-hover:text-vita-600 transition-colors">
                                                                     {item.name}
                                                                 </span>
-                                                            </Link>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 </motion.div>

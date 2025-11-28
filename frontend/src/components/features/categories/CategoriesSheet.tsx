@@ -29,7 +29,7 @@ export default function CategoriesSheet({ isOpen, onClose }: CategoriesSheetProp
 
                     {/* Content */}
                     <div className="flex-1 overflow-hidden">
-                        <CategoriesContent />
+                        <CategoriesContent onClose={onClose} />
                     </div>
                 </motion.div>
             )}

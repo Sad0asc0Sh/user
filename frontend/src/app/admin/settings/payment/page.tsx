@@ -94,7 +94,10 @@ export default function PaymentSettings() {
   };
 
   const toggleSecret = (field: string) => {
-    setShowSecrets(prev => ({ ...prev, [field]: !prev[field] }));
+    setShowSecrets((prev) => ({
+      ...prev,
+      [field]: !prev[field as keyof typeof prev],
+    }));
   };
 
   if (loading) {
@@ -156,11 +159,10 @@ export default function PaymentSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* ZarinPal Option */}
           <label
-            className={`cursor-pointer border-2 rounded-xl p-5 flex items-center gap-4 transition-all ${
-              activeGateway === 'zarinpal'
+            className={`cursor-pointer border-2 rounded-xl p-5 flex items-center gap-4 transition-all ${activeGateway === 'zarinpal'
                 ? 'border-yellow-500 bg-yellow-50 shadow-md'
                 : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
+              }`}
           >
             <input
               type="radio"
@@ -185,11 +187,10 @@ export default function PaymentSettings() {
 
           {/* Sadad Option */}
           <label
-            className={`cursor-pointer border-2 rounded-xl p-5 flex items-center gap-4 transition-all ${
-              activeGateway === 'sadad'
+            className={`cursor-pointer border-2 rounded-xl p-5 flex items-center gap-4 transition-all ${activeGateway === 'sadad'
                 ? 'border-blue-500 bg-blue-50 shadow-md'
                 : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
+              }`}
           >
             <input
               type="radio"
@@ -218,9 +219,8 @@ export default function PaymentSettings() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ZarinPal Configuration */}
         <div
-          className={`bg-white rounded-2xl shadow-sm border transition-all ${
-            activeGateway === 'zarinpal' ? 'border-yellow-500 ring-2 ring-yellow-100' : 'border-gray-200'
-          }`}
+          className={`bg-white rounded-2xl shadow-sm border transition-all ${activeGateway === 'zarinpal' ? 'border-yellow-500 ring-2 ring-yellow-100' : 'border-gray-200'
+            }`}
         >
           <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-5 rounded-t-2xl">
             <div className="flex items-center justify-between">
@@ -290,9 +290,8 @@ export default function PaymentSettings() {
 
         {/* Sadad Configuration */}
         <div
-          className={`bg-white rounded-2xl shadow-sm border transition-all ${
-            activeGateway === 'sadad' ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
-          }`}
+          className={`bg-white rounded-2xl shadow-sm border transition-all ${activeGateway === 'sadad' ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
+            }`}
         >
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-t-2xl">
             <div className="flex items-center justify-between">

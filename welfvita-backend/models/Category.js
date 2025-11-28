@@ -57,6 +57,18 @@ const CategorySchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ============================================
+    // Smart Filters Configuration
+    // Defines which filters should be shown for this category
+    // ============================================
+    filterOptions: [
+      {
+        label: { type: String, required: true }, // e.g., "Resolution"
+        type: { type: String, enum: ['text', 'number', 'select'], default: 'select' },
+        options: [String], // Predefined options for 'select' type
+      }
+    ],
   },
   {
     timestamps: true,

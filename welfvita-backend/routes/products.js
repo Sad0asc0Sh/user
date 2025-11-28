@@ -52,19 +52,34 @@ const extractImageInfo = (file) => {
   }
 }
 
-// Recursively collect all descendant category IDs
+// Recursively collect all descendant category IDs using $graphLookup (Optimized)
 const getAllDescendantCategoryIds = async (parentId) => {
-  const children = await Category.find({ parent: parentId }).select('_id').lean()
+  try {
+    const mongoose = require('mongoose')
+    const result = await Category.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(parentId) } },
+      {
+        $graphLookup: {
+          from: 'categories', // Collection name (mongoose default: lowercase plural)
+          startWith: '$_id',
+          connectFromField: '_id',
+          connectToField: 'parent',
+          as: 'descendants',
+        },
+      },
+      {
+        $project: {
+          descendantIds: '$descendants._id',
+        },
+      },
+    ])
 
-  const ids = []
-
-  for (const child of children) {
-    ids.push(child._id)
-    const subIds = await getAllDescendantCategoryIds(child._id)
-    ids.push(...subIds)
+    if (!result || result.length === 0) return []
+    return result[0].descendantIds || []
+  } catch (error) {
+    console.error('Error fetching descendant categories:', error)
+    return []
   }
-
-  return ids
 }
 
 // Helper to build base filter object from query (without text search)
@@ -175,13 +190,45 @@ router.get('/', async (req, res) => {
 
     // Category filter with optional descendants
     if (req.query.category) {
-      if (req.query.includeChildren === 'true') {
-        const ids = [req.query.category]
-        const descendants = await getAllDescendantCategoryIds(req.query.category)
-        ids.push(...descendants)
-        conditions.push({ category: { $in: ids } })
+      console.log('Processing category filter:', req.query.category)
+      let categoryId = null
+
+      // Try to find by slug first
+      const categoryDoc = await Category.findOne({ slug: req.query.category }).select('_id')
+      console.log('Category lookup result:', categoryDoc)
+
+      if (categoryDoc) {
+        categoryId = categoryDoc._id
       } else {
-        conditions.push({ category: req.query.category })
+        // If not found by slug, check if it's a valid ObjectId
+        const mongoose = require('mongoose')
+        if (mongoose.Types.ObjectId.isValid(req.query.category)) {
+          categoryId = req.query.category
+        }
+      }
+
+      if (categoryId) {
+        if (req.query.includeChildren === 'true') {
+          const ids = [categoryId]
+          const descendants = await getAllDescendantCategoryIds(categoryId)
+          ids.push(...descendants)
+          conditions.push({ category: { $in: ids } })
+        } else {
+          conditions.push({ category: categoryId })
+        }
+      } else {
+        // Category not found (neither slug nor ID), return empty result
+        return res.json({
+          success: true,
+          data: [],
+          pagination: {
+            currentPage: page,
+            itemsPerPage: limit,
+            totalItems: 0,
+            totalPages: 0,
+          },
+          priceRange: { min: 0, max: 0 }
+        })
       }
     }
 
@@ -193,6 +240,22 @@ router.get('/', async (req, res) => {
       })
     }
 
+    // Smart Filters (Properties)
+    // Expecting query like: properties[Resolution]=4K&properties[Color]=Red
+    if (req.query.properties) {
+      const props = req.query.properties
+      Object.keys(props).forEach((key) => {
+        const value = props[key]
+        if (value) {
+          conditions.push({
+            properties: {
+              $elemMatch: { label: key, value: value },
+            },
+          })
+        }
+      })
+    }
+
     const mongoFilter =
       conditions.length === 0
         ? {}
@@ -200,14 +263,66 @@ router.get('/', async (req, res) => {
           ? conditions[0]
           : { $and: conditions }
 
-    const query = Product.find(mongoFilter).sort(sort).skip(skip).limit(limit)
+    // Handle "popularity" sort
+    // Fix: sort variable is const, so we create a new variable
+    let finalSort = sort
+    if (sort === 'popularity') {
+      finalSort = '-views'
+    } else if (sort === 'bestSelling') {
+      finalSort = '-salesCount'
+    } else if (sort === 'mostVisited') {
+      finalSort = '-views'
+    }
+
+    const query = Product.find(mongoFilter).sort(finalSort).skip(skip).limit(limit)
 
     if (fields) {
       query.select(fields)
     }
 
     const now = new Date()
-    const [items, total, activeSales] = await Promise.all([
+
+    // Calculate Price Stats (Min/Max) for the current filter
+    // We want the range of the *category* (or other filters), NOT constrained by the price filter itself.
+    // So we build a separate filter for stats that excludes 'price'.
+
+    const baseFilterForStats = { ...baseFilter }
+    delete baseFilterForStats.price
+
+    const statsConditions = []
+    if (Object.keys(baseFilterForStats).length > 0) {
+      statsConditions.push(baseFilterForStats)
+    }
+
+    // Add other conditions (category, search, etc.) to statsConditions
+    // We can reuse the logic that built 'conditions' but we need to be careful not to duplicate code too much.
+    // A simpler way is to filter 'conditions' to remove price constraints.
+
+    const statsFilterConditions = conditions.map(cond => {
+      const newCond = { ...cond }
+      delete newCond.price
+      return newCond
+    })
+
+    const statsMongoFilter =
+      statsFilterConditions.length === 0
+        ? {}
+        : statsFilterConditions.length === 1
+          ? statsFilterConditions[0]
+          : { $and: statsFilterConditions }
+
+    const priceStatsPromise = Product.aggregate([
+      { $match: statsMongoFilter },
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+    ])
+
+    const [items, total, activeSales, priceStats] = await Promise.all([
       query.lean(),
       Product.countDocuments(mongoFilter),
       Sale.find({
@@ -217,7 +332,11 @@ router.get('/', async (req, res) => {
       })
         .select('name products discountPercentage badgeTheme')
         .lean(),
+      priceStatsPromise,
     ])
+
+    const minPrice = priceStats[0]?.minPrice || 0
+    const maxPrice = priceStats[0]?.maxPrice || 0
 
     // Build a quick lookup map of productId -> campaign name
     const campaignMap = new Map()
@@ -273,6 +392,10 @@ router.get('/', async (req, res) => {
         itemsPerPage: limit,
         totalItems: total,
         totalPages: Math.ceil(total / limit) || 1,
+      },
+      priceRange: {
+        min: minPrice,
+        max: maxPrice,
       },
     })
   } catch (error) {

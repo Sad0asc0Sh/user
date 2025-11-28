@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Store, Info, AlertCircle, Loader2, Check, Minus, Plus, Trash2, X, ShoppingCart, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -20,6 +20,7 @@ import ProductTabs from "@/components/product/ProductTabs";
 
 export default function ProductDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const id = params.id as string;
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -186,9 +187,12 @@ export default function ProductDetailPage() {
             {/* Header (Transparent/Floating) */}
             <div className="fixed top-0 left-0 w-full z-20 flex justify-between items-center p-4 pointer-events-none">
                 {/* Right: Close Button */}
-                <Link href="/" className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:bg-white pointer-events-auto">
+                <button
+                    onClick={() => router.back()}
+                    className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 shadow-sm hover:bg-white pointer-events-auto"
+                >
                     <X size={24} />
-                </Link>
+                </button>
 
                 {/* Left: Actions (Favorites, Cart, Search) - Visual LTR */}
                 <div className="flex gap-3 pointer-events-auto" dir="ltr">

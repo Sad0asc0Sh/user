@@ -422,4 +422,51 @@ export const productService = {
       throw error;
     }
   },
+  /**
+   * Fetch products with advanced filtering
+   */
+  getProducts: async (params: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+    category?: string;
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    properties?: Record<string, string>;
+    includeChildren?: boolean;
+  }): Promise<{ products: Product[]; total: number; priceRange?: { min: number; max: number } }> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.set("page", params.page.toString());
+      if (params.limit) queryParams.set("limit", params.limit.toString());
+      if (params.sort) queryParams.set("sort", params.sort);
+      if (params.category) queryParams.set("category", params.category);
+      if (params.search) queryParams.set("search", params.search);
+      if (params.minPrice) queryParams.set("minPrice", params.minPrice.toString());
+      if (params.maxPrice) queryParams.set("maxPrice", params.maxPrice.toString());
+      if (params.includeChildren) queryParams.set("includeChildren", "true");
+
+      if (params.properties) {
+        Object.entries(params.properties).forEach(([key, value]) => {
+          queryParams.set(`properties[${key}]`, value);
+        });
+      }
+
+      const response = await api.get(`/products?${queryParams.toString()}`);
+
+      // Handle response structure
+      const data = response.data;
+      const products = Array.isArray(data.data) ? data.data.map(mapBackendToFrontend) : [];
+
+      return {
+        products,
+        total: data.total || products.length,
+        priceRange: data.priceRange
+      };
+    } catch (error) {
+      console.error("Error fetching products with filters:", error);
+      throw error;
+    }
+  },
 };

@@ -232,6 +232,33 @@ const ProductSchema = new mongoose.Schema(
       type: Date,
       // Used for the global "Special Offers" section countdown
     },
+
+    // ============================================
+    // Popularity & Analytics Fields
+    // ============================================
+    views: {
+      type: Number,
+      default: 0,
+    },
+    salesCount: {
+      type: Number,
+      default: 0,
+    },
+    clickCount: {
+      type: Number,
+      default: 0,
+    },
+
+    // ============================================
+    // Smart Filter Properties (e.g., Resolution: 4K, Weight: 500g)
+    // Used for filtering products in a category
+    // ============================================
+    properties: [
+      {
+        label: { type: String, required: true, trim: true },
+        value: { type: String, required: true, trim: true },
+      }
+    ],
   },
   {
     timestamps: true,

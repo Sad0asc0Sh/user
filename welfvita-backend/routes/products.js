@@ -152,6 +152,43 @@ const buildProductFilter = (query) => {
   return filter
 }
 
+// Keep offer timers aligned with the current active master product
+const syncOfferTimers = async (data, currentProduct = {}) => {
+  const now = new Date()
+
+  const effectiveSpecialOffer =
+    data.isSpecialOffer !== undefined ? data.isSpecialOffer : currentProduct.isSpecialOffer
+  if (effectiveSpecialOffer === true) {
+    const activeMaster = await Product.findOne({
+      isSpecialOffer: true,
+      specialOfferEndTime: { $gt: now },
+    }).select('specialOfferEndTime')
+
+    if (activeMaster && activeMaster.specialOfferEndTime) {
+      console.log(`[SYNC SPECIAL] Enforcing master timer: ${activeMaster.specialOfferEndTime}`)
+      data.specialOfferEndTime = activeMaster.specialOfferEndTime
+    }
+  } else if (data.isSpecialOffer !== undefined) {
+    data.specialOfferEndTime = null
+  }
+
+  const effectiveFlashDeal =
+    data.isFlashDeal !== undefined ? data.isFlashDeal : currentProduct.isFlashDeal
+  if (effectiveFlashDeal === true) {
+    const activeMaster = await Product.findOne({
+      isFlashDeal: true,
+      flashDealEndTime: { $gt: now },
+    }).select('flashDealEndTime')
+
+    if (activeMaster && activeMaster.flashDealEndTime) {
+      console.log(`[SYNC FLASH] Enforcing master timer: ${activeMaster.flashDealEndTime}`)
+      data.flashDealEndTime = activeMaster.flashDealEndTime
+    }
+  } else if (data.isFlashDeal !== undefined) {
+    data.flashDealEndTime = null
+  }
+}
+
 // ============================================
 // GET /api/products
 // Public products list with filters & pagination
@@ -621,44 +658,8 @@ router.post(
         productData.variants = variants || []
       }
 
-      // Helper function to sync offer timers
-      const syncOfferTimers = async (data) => {
-        const Product = require('../models/Product');
-        const now = new Date();
-
-        // --- 1. Special Offer Sync ---
-        if (data.isSpecialOffer === true) {
-          const activeMaster = await Product.findOne({
-            isSpecialOffer: true,
-            specialOfferEndTime: { $gt: now }
-          }).select('specialOfferEndTime');
-
-          if (activeMaster && activeMaster.specialOfferEndTime) {
-            console.log(`[SYNC SPECIAL] Enforcing master timer: ${activeMaster.specialOfferEndTime}`);
-            data.specialOfferEndTime = activeMaster.specialOfferEndTime;
-          }
-        } else {
-          data.specialOfferEndTime = null;
-        }
-
-        // --- 2. Flash Deal Sync ---
-        if (data.isFlashDeal === true) {
-          const activeMaster = await Product.findOne({
-            isFlashDeal: true,
-            flashDealEndTime: { $gt: now }
-          }).select('flashDealEndTime');
-
-          if (activeMaster && activeMaster.flashDealEndTime) {
-            console.log(`[SYNC FLASH] Enforcing master timer: ${activeMaster.flashDealEndTime}`);
-            data.flashDealEndTime = activeMaster.flashDealEndTime;
-          }
-        } else {
-          data.flashDealEndTime = null;
-        }
-      };
-
       // Apply Timer Synchronization
-      await syncOfferTimers(productData);
+      await syncOfferTimers(productData)
 
       const product = await Product.create(productData)
 

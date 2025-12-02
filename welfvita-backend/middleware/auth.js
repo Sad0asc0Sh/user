@@ -2,7 +2,13 @@ const jwt = require('jsonwebtoken')
 const Admin = require('../models/Admin')
 const User = require('../models/User')
 
-const JWT_SECRET =
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set for authentication middleware')
+}
+const JWT_ISSUER = process.env.JWT_ISSUER || 'welfvita-api'
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'welfvita-clients'
+
   process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
 
 // احراز هویت بر اساس توکن JWT
@@ -25,7 +31,7 @@ const protect = async (req, res, next) => {
       })
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, JWT_SECRET, { issuer: JWT_ISSUER, audience: JWT_AUDIENCE })
 
     // Check if it's a customer or admin user
     // Customer tokens include type: 'customer' in payload

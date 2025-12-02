@@ -11,8 +11,8 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "فروشگاه اینترنتی | تجربه خرید مدرن", // Persian Title
-  description: "بهترین محصولات با بهترین قیمت",
+  title: "فروشگاه ولفویتا | خرید آنلاین محصولات",
+  description: "خرید آنلاین با پیشنهادهای ویژه، تحویل سریع و تجربه کاربری روان",
 };
 
 export default function RootLayout({

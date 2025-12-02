@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const Admin = require('../models/Admin')
 const { sendResetPasswordEmail } = require('../utils/notificationService')
-const { protect } = require('../middleware/auth')
+const { protect, authorize } = require('../middleware/auth')
 const { upload } = require('../middleware/upload')
 // const { updateMyProfile, updateMyAvatar } = require('../controllers/authController') // REMOVED: This was for Admin
 const {
@@ -30,18 +30,27 @@ const {
 console.log('DEBUG: sendEmailOtp type:', typeof sendEmailOtp);
 
 // JWT configuration
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
-// مدت اعتبار توکن (پیش‌فرض ۹۰ دقیقه)
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set for authentication')
+}
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '5h'
+const JWT_ISSUER = process.env.JWT_ISSUER || 'welfvita-api'
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'welfvita-clients'
 
 // ============================================
 // Helper: generate JWT token
 // ============================================
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRE,
-  })
+const generateToken = (userId, role = 'admin') => {
+  return jwt.sign(
+    { id: userId, type: 'admin', role },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRE,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    },
+  )
 }
 
 // ============================================
@@ -179,7 +188,7 @@ const makeLoginHandler = (allowedRoles) => async (req, res) => {
     admin.lastLogin = new Date()
     await admin.save()
 
-    const token = generateToken(admin._id)
+    const token = generateToken(admin._id, admin.role)
     const adminData = admin.toJSON()
 
     console.log('Admin login successful:', admin.email)
@@ -275,70 +284,55 @@ router.get('/me', async (req, res) => {
 // ============================================
 // POST /api/auth/register
 // ============================================
-router.post('/register', async (req, res) => {
+
+router.post('/register', protect, authorize('superadmin'), async (req, res) => {
   try {
     const { name, email, password, role } = req.body
 
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'نام، ایمیل و رمز عبور الزامی است.',
+        message: '???? ????? ? ???? ???? ?????? ???',
       })
     }
 
     const existingAdmin = await Admin.findOne({ email })
 
     if (existingAdmin) {
-      const token = generateToken(existingAdmin._id)
-      console.log(
-        'Account already exists, returning success:',
-        existingAdmin.email,
-      )
-
-      return res.status(200).json({
-        success: true,
-        message: 'حساب کاربری قبلاً ایجاد شده است.',
-        data: {
-          user: existingAdmin,
-          token,
-        },
-        accessToken: token,
-        expiresIn: JWT_EXPIRE,
+      return res.status(409).json({
+        success: false,
+        message: '???? ????? ?? ??? ????? ???? ????',
       })
     }
+
+    const allowedRoles = ['admin', 'manager', 'superadmin']
+    const safeRole = allowedRoles.includes(role) ? role : 'admin'
 
     const admin = await Admin.create({
       name,
       email,
       password,
-      role: 'user',
+      role: safeRole,
     })
-
-    const token = generateToken(admin._id)
 
     console.log('Admin registered:', admin.email)
 
     return res.status(201).json({
       success: true,
-      message: 'ادمین با موفقیت ثبت شد.',
+      message: '????? ???? ?? ?????? ????? ??',
       data: {
         user: admin,
-        token,
       },
-      accessToken: token,
-      expiresIn: JWT_EXPIRE,
     })
   } catch (error) {
     console.error('Error in admin registration:', error)
     return res.status(500).json({
       success: false,
-      message: 'خطا در ثبت ادمین',
+      message: '??? ?? ??????? ?????',
       error: error.message,
     })
   }
 })
-
-// ============================================
 // POST /api/auth/admin/forgot-password
 // درخواست بازنشانی رمز عبور (ارسال ایمیل)
 // ============================================

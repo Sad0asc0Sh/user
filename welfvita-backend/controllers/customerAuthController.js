@@ -9,15 +9,20 @@ const RMA = require('../models/RMA')
 const { sendVerificationEmail, sendOtpSMS } = require('../utils/notificationService')
 
 // JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set for customer auth')
+}
 const JWT_EXPIRE = process.env.JWT_EXPIRE_CUSTOMER || '30d'
+const JWT_ISSUER = process.env.JWT_ISSUER || 'welfvita-api'
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'welfvita-clients'
 
 // Google OAuth Client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 // Helpers
 const generateToken = (userId) =>
-  jwt.sign({ id: userId, type: 'customer' }, JWT_SECRET, { expiresIn: JWT_EXPIRE })
+  jwt.sign({ id: userId, type: 'customer' }, JWT_SECRET, { expiresIn: JWT_EXPIRE, issuer: JWT_ISSUER, audience: JWT_AUDIENCE })
 
 // ======================
 // OTP: Send code
@@ -41,7 +46,7 @@ exports.sendOtp = async (req, res) => {
     const otp = new OTP({ mobile, code, expiresAt, verified: false, attempts: 0 })
     await otp.save()
 
-    console.log(`[OTP] Code for ${mobile}: ${code}`)
+    console.log(`[OTP] Code generated for mobile: ${mobile.slice(0, 3)}****${mobile.slice(-2)}`)
 
     // Send SMS
     await sendOtpSMS(mobile, code)
@@ -555,7 +560,7 @@ exports.forgotPassword = async (req, res) => {
         const otp = new OTP({ email, code, expiresAt, verified: false, attempts: 0 })
         await otp.save()
 
-        console.log(`[EMAIL OTP] Code for ${email}: ${code}`)
+        console.log(`[EMAIL OTP] Code generated for email: ${email}`)
 
         // Send Email
         await sendVerificationEmail(email, code)
@@ -811,7 +816,7 @@ exports.sendBindOtp = async (req, res) => {
     const otp = new OTP({ mobile, code, expiresAt, verified: false, attempts: 0 })
     await otp.save()
 
-    console.log(`[BIND OTP] Code for ${mobile}: ${code}`)
+    console.log(`[BIND OTP] Code generated for mobile: ${mobile.slice(0, 3)}****${mobile.slice(-2)}`)
 
     // Send SMS
     await sendOtpSMS(mobile, code)
@@ -931,7 +936,7 @@ exports.sendEmailOtp = async (req, res) => {
     const otp = new OTP({ email, code, expiresAt, verified: false, attempts: 0 })
     await otp.save()
 
-    console.log(`[EMAIL OTP] Code for ${email}: ${code}`)
+    console.log(`[EMAIL OTP] Code generated for email: ${email}`)
 
     // Send Email (Asynchronous - Fire and Forget)
     sendVerificationEmail(email, code)

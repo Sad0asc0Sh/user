@@ -19,7 +19,7 @@ export default function Home() {
       try {
         const [featured, popular] = await Promise.all([
           categoryService.getFeatured(),
-          categoryService.getPopular()
+          categoryService.getPopular(),
         ]);
         setFeaturedCats(featured);
         setPopularCats(popular);
@@ -35,23 +35,15 @@ export default function Home() {
       <HeroSection />
 
       {/* Featured Categories (Circles) */}
-      <CategoryRail
-        title="دسته‌بندی‌های ویژه"
-        variant="circle"
-        data={featuredCats}
-      />
+      <CategoryRail title="دسته های ویژه" variant="circle" data={featuredCats} />
 
       {/* Popular Categories (Cards) */}
-      <CategoryRail
-        title="محبوب‌ترین دسته‌ها"
-        variant="card"
-        data={popularCats}
-      />
+      <CategoryRail title="دسته های محبوب" variant="card" data={popularCats} />
 
       <FlashOfferRail />
       <SpecialOfferRail />
-      <ProductRailContainer title="پرفروش‌ترین‌ها" fetchType="bestSellers" limit={10} />
-      <ProductRailContainer title="جدیدترین‌ها" fetchType="newest" limit={10} />
+      <ProductRailContainer title="پرفروش ها" fetchType="bestSellers" limit={10} />
+      <ProductRailContainer title="جدیدترین ها" fetchType="newest" limit={10} />
       <ServicesGrid />
       <BrandsStrip />
       <ValueProposition />

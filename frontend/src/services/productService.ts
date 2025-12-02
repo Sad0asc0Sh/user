@@ -305,7 +305,7 @@ export const productService = {
    */
   getAll: async (): Promise<Product[]> => {
     try {
-      const response = await api.get("/products");
+      const response = await api.get(`/products?_t=${Date.now()}`);
       // Map each backend product to frontend format
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
@@ -321,7 +321,7 @@ export const productService = {
    */
   getNewest: async (limit: number = 10): Promise<Product[]> => {
     try {
-      const response = await api.get(`/products?sort=-createdAt&limit=${limit}`);
+      const response = await api.get(`/products?sort=-createdAt&limit=${limit}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -337,7 +337,7 @@ export const productService = {
   getBestSellers: async (limit: number = 10): Promise<Product[]> => {
     try {
       // Assuming backend supports sorting by sales or numReviews
-      const response = await api.get(`/products?sort=-numReviews&limit=${limit}`);
+      const response = await api.get(`/products?sort=-numReviews&limit=${limit}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -352,7 +352,7 @@ export const productService = {
    */
   getDiscounted: async (limit: number = 10): Promise<Product[]> => {
     try {
-      const response = await api.get(`/products?hasDiscount=true&limit=${limit}`);
+      const response = await api.get(`/products?hasDiscount=true&limit=${limit}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -367,7 +367,7 @@ export const productService = {
    */
   getById: async (id: string): Promise<Product> => {
     try {
-      const response = await api.get(`/products/${id}`);
+      const response = await api.get(`/products/${id}?_t=${Date.now()}`);
       const item = productService._extractItem(response);
       return mapBackendToFrontend(item);
     } catch (error) {
@@ -384,7 +384,7 @@ export const productService = {
   getByCategory: async (category: string, limit?: number): Promise<Product[]> => {
     try {
       const limitParam = limit ? `&limit=${limit}` : "";
-      const response = await api.get(`/products?category=${category}${limitParam}`);
+      const response = await api.get(`/products?category=${category}${limitParam}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -401,7 +401,7 @@ export const productService = {
     try {
       // Query products with isFlashDeal=true and flashDealEndTime greater than now
       const now = new Date().toISOString();
-      const response = await api.get(`/products?isFlashDeal=true&flashDealEndTime[gt]=${now}&limit=${limit}`);
+      const response = await api.get(`/products?isFlashDeal=true&flashDealEndTime[gt]=${now}&limit=${limit}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -418,7 +418,7 @@ export const productService = {
     try {
       // Query products with isSpecialOffer=true and specialOfferEndTime greater than now
       const now = new Date().toISOString();
-      const response = await api.get(`/products?isSpecialOffer=true&specialOfferEndTime[gt]=${now}&limit=${limit}`);
+      const response = await api.get(`/products?isSpecialOffer=true&specialOfferEndTime[gt]=${now}&limit=${limit}&_t=${Date.now()}`);
       const items = productService._extractList(response);
       return items.map(mapBackendToFrontend);
     } catch (error) {
@@ -456,6 +456,9 @@ export const productService = {
           queryParams.set(`properties[${key}]`, value);
         });
       }
+
+      // Add cache busting timestamp
+      queryParams.set('_t', Date.now().toString());
 
       const response = await api.get(`/products?${queryParams.toString()}`);
 

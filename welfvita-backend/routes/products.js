@@ -12,6 +12,7 @@ const Category = require('../models/Category')
 const Brand = require('../models/Brand')
 const { protect, authorize } = require('../middleware/auth')
 const { upload, cloudinary } = require('../middleware/upload')
+const { cacheMiddleware, clearCacheByKey, clearCacheByPrefix } = require('../middleware/cache')
 
 // Multer configuration for CSV upload (local storage)
 const csvStorage = multer.diskStorage({
@@ -193,7 +194,7 @@ const syncOfferTimers = async (data, currentProduct = {}) => {
 // GET /api/products
 // Public products list with filters & pagination
 // ============================================
-router.get('/', async (req, res) => {
+router.get('/', cacheMiddleware(300), async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1
     const limit = parseInt(req.query.limit, 10) || 20
@@ -368,7 +369,8 @@ router.get('/', async (req, res) => {
         startDate: { $lte: now },
         endDate: { $gte: now },
       })
-        .select('name products discountPercentage badgeTheme')
+        .populate('categories', '_id')
+        .select('name products categories discountPercentage badgeTheme endDate includeSubcategories')
         .lean(),
       priceStatsPromise,
     ])
@@ -376,24 +378,75 @@ router.get('/', async (req, res) => {
     const minPrice = priceStats[0]?.minPrice || 0
     const maxPrice = priceStats[0]?.maxPrice || 0
 
-    // Build a quick lookup map of productId -> campaign name
-    const campaignMap = new Map()
-    activeSales.forEach((sale) => {
-      ; (sale.products || []).forEach((pid) => {
-        const key = pid.toString()
-        if (!campaignMap.has(key)) {
-          campaignMap.set(key, { name: sale.name, discount: sale.discountPercentage, theme: sale.badgeTheme, endDate: sale.endDate })
-        }
-      })
-    })
+    // Helper: Get all descendant category IDs for a given category
+    const getCategoryWithDescendants = async (categoryId, includeSubcategories) => {
+      if (!includeSubcategories) return [categoryId]
+      const descendants = await getAllDescendantCategoryIds(categoryId)
+      return [categoryId, ...descendants]
+    }
 
+    // Build campaign maps for both direct products and category-based products
+    const campaignMap = new Map()
+    const categoryDiscountMap = new Map() // Map: categoryId -> { name, discount, theme, endDate }
+
+    // Process each active sale
+    for (const sale of activeSales) {
+      // 1. Handle direct product assignments
+      if (sale.products && sale.products.length > 0) {
+        sale.products.forEach((pid) => {
+          const key = pid.toString()
+          if (!campaignMap.has(key)) {
+            campaignMap.set(key, {
+              name: sale.name,
+              discount: sale.discountPercentage,
+              theme: sale.badgeTheme,
+              endDate: sale.endDate,
+            })
+          }
+        })
+      }
+
+      // 2. Handle category-based assignments
+      if (sale.categories && sale.categories.length > 0) {
+        for (const cat of sale.categories) {
+          const categoryId = cat._id || cat
+          const categoryIds = await getCategoryWithDescendants(
+            categoryId.toString(),
+            sale.includeSubcategories !== false
+          )
+
+          categoryIds.forEach((cid) => {
+            const key = cid.toString()
+            if (!categoryDiscountMap.has(key)) {
+              categoryDiscountMap.set(key, {
+                name: sale.name,
+                discount: sale.discountPercentage,
+                theme: sale.badgeTheme,
+                endDate: sale.endDate,
+              })
+            }
+          })
+        }
+      }
+    }
+
+    // Apply discounts to products
     const itemsWithCampaign = items.map((item) => {
       const productId = item._id ? item._id.toString() : null
-      const campaignInfo = productId ? campaignMap.get(productId) : undefined
+      const categoryId = item.category ? item.category.toString() : null
+      
+      // Priority 1: Direct product campaign
+      let campaignInfo = productId ? campaignMap.get(productId) : undefined
+      
+      // Priority 2: Category-based campaign (if no direct campaign)
+      if (!campaignInfo && categoryId) {
+        campaignInfo = categoryDiscountMap.get(categoryId)
+      }
 
       const newItem = { ...item }
 
       if (campaignInfo) {
+        // Apply campaign discount
         newItem.campaignLabel = campaignInfo.name
         newItem.campaignTheme = campaignInfo.theme || 'green-orange'
         if (campaignInfo.discount > 0) {
@@ -509,18 +562,40 @@ router.put(
 // ============================================
 // GET /api/products/:id
 // ============================================
-router.get('/:id', async (req, res) => {
+router.get('/:id', cacheMiddleware(3600), async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('brand', 'name logo')
-      .populate({
-        path: 'category',
-        select: 'name slug parent',
-        populate: {
-          path: 'parent',
-          select: 'name slug',
-        },
-      })
+    let product;
+    const mongoose = require('mongoose');
+    const { id } = req.params;
+
+    // 1. Try finding by ID if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      product = await Product.findById(id)
+        .populate('brand', 'name logo')
+        .populate({
+          path: 'category',
+          select: 'name slug parent',
+          populate: {
+            path: 'parent',
+            select: 'name slug',
+          },
+        });
+    }
+
+    // 2. If not found by ID, try finding by slug
+    if (!product) {
+      product = await Product.findOne({ slug: id })
+        .populate('brand', 'name logo')
+        .populate({
+          path: 'category',
+          select: 'name slug parent',
+          populate: {
+            path: 'parent',
+            select: 'name slug',
+          },
+        });
+    }
+
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -529,7 +604,9 @@ router.get('/:id', async (req, res) => {
     }
 
     const now = new Date()
-    const activeSale = await Sale.findOne({
+    
+    // Check for direct product campaign
+    let activeSale = await Sale.findOne({
       isActive: true,
       startDate: { $lte: now },
       endDate: { $gte: now },
@@ -537,6 +614,24 @@ router.get('/:id', async (req, res) => {
     })
       .select('name discountPercentage badgeTheme endDate')
       .lean()
+
+    // If no direct campaign, check category-based campaign
+    if (!activeSale && product.category) {
+      const categoryId = typeof product.category === 'object' ? product.category._id : product.category
+      
+      const categorySale = await Sale.findOne({
+        isActive: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        categories: categoryId,
+      })
+        .select('name discountPercentage badgeTheme endDate includeSubcategories')
+        .lean()
+
+      if (categorySale) {
+        activeSale = categorySale
+      }
+    }
 
     const productObj = product.toObject()
     if (activeSale) {
@@ -662,6 +757,9 @@ router.post(
       await syncOfferTimers(productData)
 
       const product = await Product.create(productData)
+
+      clearCacheByPrefix('/api/products')
+      clearCacheByPrefix('/api/v1/admin/products')
 
       res.status(201).json({
         success: true,
@@ -809,6 +907,11 @@ router.put(
 
       console.log(`[UPDATE PRODUCT] Result isSpecialOffer:`, updatedProduct.isSpecialOffer)
 
+      // Invalidate caches for this product and lists
+      clearCacheByKey(`/api/products/${req.params.id}`)
+      clearCacheByPrefix('/api/products')
+      clearCacheByPrefix('/api/v1/admin/products')
+
       res.json({
         success: true,
         message: 'Product updated successfully',
@@ -849,6 +952,10 @@ router.post(
 
       product.images = [...(product.images || []), ...newImages]
       await product.save()
+
+      clearCacheByKey(`/api/products/${req.params.id}`)
+      clearCacheByPrefix('/api/products')
+      clearCacheByPrefix('/api/v1/admin/products')
 
       res.json({
         success: true,
@@ -898,6 +1005,10 @@ router.delete(
       }
 
       await product.deleteOne()
+
+      clearCacheByKey(`/api/products/${req.params.id}`)
+      clearCacheByPrefix('/api/products')
+      clearCacheByPrefix('/api/v1/admin/products')
 
       res.json({
         success: true,
@@ -971,6 +1082,10 @@ router.put(
         { $set: { stock: numericStock } },
         { new: true, runValidators: false },
       )
+
+      clearCacheByKey(`/api/products/${req.params.id}`)
+      clearCacheByPrefix('/api/products')
+      clearCacheByPrefix('/api/v1/admin/products')
 
       res.json({
         success: true,
@@ -1152,6 +1267,9 @@ router.post(
             if (productsToCreate.length > 0) {
               await Product.insertMany(productsToCreate)
             }
+
+            clearCacheByPrefix('/api/products')
+            clearCacheByPrefix('/api/v1/admin/products')
 
             // Delete uploaded file
             fs.unlinkSync(filePath)

@@ -25,6 +25,7 @@ interface CartState {
     loading: boolean;
     error: string | null;
     initialized: boolean;
+    mutating: boolean;
 
     refreshCart: () => Promise<void>;
     addToCart: (product: Product, quantity?: number, variantOptions?: Array<{ name: string; value: string }>) => Promise<void>;
@@ -94,12 +95,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     loading: false,
     error: null,
     initialized: false,
+    mutating: false,
 
     refreshCart: async () => {
         const isAuthenticated = authService.isAuthenticated();
         set({ loading: true, error: null });
 
         try {
+            set({ mutating: true });
+            set({ mutating: true });
             if (isAuthenticated) {
                 const response = await cartService.getCart();
                 if (response.success && response.data) {
@@ -121,6 +125,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     },
 
     addToCart: async (product, quantity = 1, variantOptions) => {
+        if (get().mutating) return;
         const isAuthenticated = authService.isAuthenticated();
         const { cartItems } = get();
 
@@ -197,10 +202,13 @@ export const useCartStore = create<CartState>((set, get) => ({
             console.error("[useCartStore] Error adding to cart:", err);
             set({ error: err.message || "خطا در افزودن به سبد خرید" });
             throw err;
+        } finally {
+            set({ mutating: false });
         }
     },
 
     updateQuantity: async (productId, quantity, variantOptions) => {
+        if (get().mutating) return;
         if (quantity < 1) {
             return get().removeFromCart(productId, variantOptions);
         }
@@ -209,6 +217,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         const { cartItems } = get();
 
         try {
+            set({ mutating: true });
             if (isAuthenticated) {
                 // Optimistic Update
                 const previousCart = [...cartItems];
@@ -255,14 +264,18 @@ export const useCartStore = create<CartState>((set, get) => ({
             console.error("[useCartStore] Error updating quantity:", err);
             set({ error: err.message || "خطا در به‌روزرسانی تعداد" });
             throw err;
+        } finally {
+            set({ mutating: false });
         }
     },
 
     removeFromCart: async (productId, variantOptions) => {
+        if (get().mutating) return;
         const isAuthenticated = authService.isAuthenticated();
         const { cartItems } = get();
 
         try {
+            set({ mutating: true });
             if (isAuthenticated) {
                 const previousCart = [...cartItems];
                 const updatedCart = cartItems.filter(item => {
@@ -302,14 +315,18 @@ export const useCartStore = create<CartState>((set, get) => ({
             console.error("[useCartStore] Error removing item:", err);
             set({ error: err.message || "خطا در حذف از سبد خرید" });
             throw err;
+        } finally {
+            set({ mutating: false });
         }
     },
 
     clearCart: async () => {
+        if (get().mutating) return;
         const isAuthenticated = authService.isAuthenticated();
         const { cartItems } = get();
 
         try {
+            set({ mutating: true });
             if (isAuthenticated) {
                 const previousCart = [...cartItems];
                 set({ cartItems: [] });
@@ -328,6 +345,8 @@ export const useCartStore = create<CartState>((set, get) => ({
             console.error("[useCartStore] Error clearing cart:", err);
             set({ error: err.message || "خطا در پاک کردن سبد خرید" });
             throw err;
+        } finally {
+            set({ mutating: false });
         }
     }
 }));

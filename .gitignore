@@ -41,6 +41,19 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Next.js
+.next
+
+# Environment files
+.env.local
+
+# Logs and coverage
+*.log
+coverage
+
+# macOS
+.DS_Store
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

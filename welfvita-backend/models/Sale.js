@@ -32,6 +32,18 @@ const saleSchema = new mongoose.Schema(
         ref: 'Product', // ارجاع به مدل محصول
       },
     ],
+    // اتصال به دسته‌بندی‌هایی که شامل این تخفیف می‌شوند (همه محصولات آن دسته تخفیف می‌گیرند)
+    categories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+      },
+    ],
+    // آیا این تخفیف شامل زیردسته‌های انتخاب شده هم می‌شود؟
+    includeSubcategories: {
+      type: Boolean,
+      default: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -55,5 +67,6 @@ saleSchema.pre('save', function (next) {
 
 // ایندکس برای جستجوی سریع تخفیف‌های فعال
 saleSchema.index({ isActive: 1, startDate: 1, endDate: 1 })
+saleSchema.index({ categories: 1 })
 
 module.exports = mongoose.model('Sale', saleSchema)

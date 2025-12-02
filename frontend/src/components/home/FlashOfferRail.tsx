@@ -5,12 +5,14 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/free-mode";
-import { Timer } from "lucide-react";
+import Timer from "lucide-react/dist/esm/icons/timer";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { productService, Product } from "@/services/productService";
 import ProductTimerBadge from "@/components/product/ProductTimerBadge";
+import { getBlurDataURL } from "@/lib/blurPlaceholder";
+import { buildProductUrl } from "@/lib/paths";
 
 /**
  * Single flash deal card with:
@@ -70,7 +72,7 @@ function FlashDealCard({ product }: { product: Product }) {
     const moved = dragRef.current?.moved;
     dragRef.current = null;
     if (!moved) {
-      router.push(`/product/${product.id}`);
+      router.push(buildProductUrl(product));
     }
   };
 
@@ -108,6 +110,11 @@ function FlashDealCard({ product }: { product: Product }) {
               alt={product.name}
               fill
               className={`object-cover group-hover:scale-105 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-60' : ''}`}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              loading="lazy"
+              quality={75}
+              placeholder="blur"
+              blurDataURL={getBlurDataURL()}
             />
 
             {/* Timer Overlay (Top Right) */}
@@ -171,19 +178,30 @@ export default function FlashOfferRail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isCancelled = false;
     const fetchFlashDeals = async () => {
       try {
         setLoading(true);
         const deals = await productService.getFlashDeals(10);
-        setFlashDeals(deals);
+        if (!isCancelled) {
+          setFlashDeals(deals);
+        }
       } catch (error) {
-        console.error("Error loading flash deals:", error);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Error loading flash deals:", error);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchFlashDeals();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   if (!loading && flashDeals.length === 0) {

@@ -98,6 +98,48 @@ exports.getAllCategories = async (req, res) => {
   }
 }
 
+// GET /api/categories/featured
+exports.getFeaturedCategories = async (req, res) => {
+  try {
+    const categories = await Category.find({ isActive: true, isFeatured: true })
+      .sort({ order: 1, name: 1 })
+
+    res.json({
+      success: true,
+      data: categories,
+      count: categories.length,
+    })
+  } catch (error) {
+    console.error('Error fetching featured categories:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در دریافت دسته‌بندی‌های ویژه',
+      error: error.message,
+    })
+  }
+}
+
+// GET /api/categories/popular
+exports.getPopularCategories = async (req, res) => {
+  try {
+    const categories = await Category.find({ isActive: true, isPopular: true })
+      .sort({ order: 1, name: 1 })
+
+    res.json({
+      success: true,
+      data: categories,
+      count: categories.length,
+    })
+  } catch (error) {
+    console.error('Error fetching popular categories:', error)
+    res.status(500).json({
+      success: false,
+      message: 'خطا در دریافت دسته‌بندی‌های محبوب',
+      error: error.message,
+    })
+  }
+}
+
 // GET /api/categories/:id
 exports.getCategoryById = async (req, res) => {
   try {

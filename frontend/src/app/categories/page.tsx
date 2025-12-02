@@ -1,5 +1,6 @@
-"use client";
 import CategoriesContent from "@/components/features/categories/CategoriesContent";
+
+export const revalidate = 600;
 
 export default function CategoriesPage() {
     return (

@@ -103,7 +103,8 @@ export const useCategoryStore = create((set, get) => ({
     set({ loading: true, error: null })
     try {
       const api = (await import('../api')).default
-      const response = await api.get('/categories/tree')
+      // Cache busting: add timestamp to bypass browser cache
+      const response = await api.get(`/categories/tree?_t=${Date.now()}`)
       const rawData = response?.data?.data || []
 
       const getImageUrl = (img) => {
@@ -121,6 +122,7 @@ export const useCategoryStore = create((set, get) => ({
           parent: n.parent || null,
           description: n.description || '',
           isFeatured: !!n.isFeatured,
+          isPopular: !!n.isPopular,
           icon: n.icon || null,
           image: n.image || null,
           iconUrl: getImageUrl(n.icon),

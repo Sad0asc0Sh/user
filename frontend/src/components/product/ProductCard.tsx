@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Star } from "lucide-react";
-import { Swiper, SwiperSlide } from "swiper/react";
+import Heart from "lucide-react/dist/esm/icons/heart";
+import Star from "lucide-react/dist/esm/icons/star";
+import dynamic from "next/dynamic";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
@@ -13,6 +14,11 @@ import { Product } from "@/services/productService";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import ProductTimerBadge from "@/components/product/ProductTimerBadge";
+import { getBlurDataURL } from "@/lib/blurPlaceholder";
+import { buildProductUrl } from "@/lib/paths";
+
+const Swiper = dynamic(() => import("swiper/react").then((mod) => mod.Swiper), { ssr: false });
+const SwiperSlide = dynamic(() => import("swiper/react").then((mod) => mod.SwiperSlide), { ssr: false });
 
 interface ProductCardProps {
     product: Product;
@@ -150,7 +156,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                     />
                 )}
 
-                <Link href={`/product/${product.id || product.slug}`} className="block w-full h-full">
+                <Link href={buildProductUrl(product)} className="block w-full h-full">
                     {/* If hovered and has multiple images, show slider */}
                     {isHovered && product.images && product.images.length > 1 ? (
                         <Swiper
@@ -169,6 +175,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                                             alt={`${product.title} - ${idx + 1}`}
                                             fill
                                             className="object-contain p-4"
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                            loading="lazy"
+                                            quality={75}
+                                            placeholder="blur"
+                                            blurDataURL={getBlurDataURL()}
                                         />
                                     </div>
                                 </SwiperSlide>
@@ -182,6 +193,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                                 alt={product.title}
                                 fill
                                 className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                loading="lazy"
+                                quality={75}
+                                placeholder="blur"
+                                blurDataURL={getBlurDataURL()}
                             />
                         </div>
                     )}
@@ -198,7 +214,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 )}
 
                 {/* Title */}
-                <Link href={`/product/${product.id || product.slug}`} className="block">
+                <Link href={buildProductUrl(product)} className="block">
                     <h3 className="text-sm font-bold text-gray-800 leading-snug line-clamp-2 min-h-[2.5em] hover:text-vita-600 transition-colors">
                         {product.title}
                     </h3>

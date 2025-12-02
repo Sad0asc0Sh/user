@@ -133,6 +133,10 @@ app.use('/api/banners', bannerRoutes)
 const announcementRoutes = require('./routes/announcements')
 app.use('/api/announcements', announcementRoutes)
 
+// Cache routes
+const cacheRoutes = require('./routes/cache')
+app.use('/api/cache', cacheRoutes)
+
 // Dashboard Routes
 const dashboardRoutes = require('./routes/dashboard')
 app.use('/api/dashboard', dashboardRoutes)

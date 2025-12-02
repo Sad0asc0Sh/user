@@ -11,26 +11,43 @@ import { Banner, bannerService } from "@/services/bannerService";
 import { resolveImageUrl } from "@/lib/image";
 import { useRouter } from "next/navigation";
 
-export default function HeroSection() {
-    const [banners, setBanners] = useState<Banner[]>([]);
-    const [loading, setLoading] = useState(true);
+type HeroSectionProps = {
+    initialBanners?: Banner[];
+};
+
+export default function HeroSection({ initialBanners = [] }: HeroSectionProps) {
+    const [banners, setBanners] = useState<Banner[]>(initialBanners);
+    const [loading, setLoading] = useState(initialBanners.length === 0);
     const dragRef = useRef<{ startX: number; moved: boolean } | null>(null);
     const router = useRouter();
 
     useEffect(() => {
+        // If we already have banners from the server, skip fetching.
+        if (initialBanners.length > 0) {
+            setBanners(initialBanners);
+            setLoading(false);
+            return;
+        }
+
+        let isMounted = true;
         const fetchBanners = async () => {
             try {
                 const data = await bannerService.getAll();
+                if (!isMounted) return;
                 setBanners(data);
             } catch (error) {
                 console.error("Failed to fetch banners:", error);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchBanners();
-    }, []);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [initialBanners]);
 
     const mainBanners = banners.filter(b => b.position === 'main-slider');
     const middleBanners = banners.filter(b => b.position === 'middle-banner').slice(0, 3);

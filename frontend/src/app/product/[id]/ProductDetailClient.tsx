@@ -1,17 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Heart from "lucide-react/dist/esm/icons/heart";
-import Star from "lucide-react/dist/esm/icons/star";
-import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
-import Store from "lucide-react/dist/esm/icons/store";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
-import Minus from "lucide-react/dist/esm/icons/minus";
-import Plus from "lucide-react/dist/esm/icons/plus";
-import Trash2 from "lucide-react/dist/esm/icons/trash-2";
-import X from "lucide-react/dist/esm/icons/x";
-import ShoppingCart from "lucide-react/dist/esm/icons/shopping-cart";
-import Search from "lucide-react/dist/esm/icons/search";
+import { Heart, Star, ShieldCheck, Store, Loader2, Minus, Plus, Trash2, X, ShoppingCart, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pagination, Zoom, Navigation } from "swiper/modules";
@@ -230,17 +220,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                                 : "border-transparent opacity-60 hover:opacity-100"
                                 }`}
                         >
-                                <Image
-                                    src={img}
-                                    alt={`Thumbnail ${index + 1}`}
-                                    fill
-                                    className="object-cover"
-                                    sizes="64px"
-                                    loading="lazy"
-                                    quality={75}
-                                    placeholder="blur"
-                                    blurDataURL={getBlurDataURL()}
-                                />
+                            <Image
+                                src={img}
+                                alt={`Thumbnail ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                                loading="lazy"
+                                quality={75}
+                                placeholder="blur"
+                                blurDataURL={getBlurDataURL()}
+                            />
                         </button>
                     ))}
                 </div>
